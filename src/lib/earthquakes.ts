@@ -1,0 +1,37 @@
+export type UsgsEarthquakeFeature = GeoJSON.Feature<GeoJSON.Point, {
+  mag: number | null;
+  place: string;
+  time: number;
+  updated: number;
+  tz: number | null;
+  url: string;
+  detail: string;
+  felt: number | null;
+  cdi: number | null;
+  mmi: number | null;
+  alert: string | null;
+  status: string;
+  tsunami: number;
+  sig: number;
+  net: string;
+  code: string;
+  ids: string;
+  sources: string;
+  types: string;
+  nst: number | null;
+  dmin: number | null;
+  rms: number | null;
+  gap: number | null;
+  magType: string | null;
+  type: string;
+  title: string;
+}>;
+
+export type UsgsEarthquakeCollection = GeoJSON.FeatureCollection<GeoJSON.Point, UsgsEarthquakeFeature["properties"]>;
+
+export type EarthquakesApiResponse = {
+  data: UsgsEarthquakeCollection;
+  fetchedAt: string;
+  stale: boolean;
+  error?: string;
+};
