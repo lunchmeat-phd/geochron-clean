@@ -4,8 +4,11 @@ export const AIR_QUALITY_SOURCE_ID = "air-quality-source";
 export const AIR_QUALITY_LAYER_ID = "air-quality-layer";
 
 // NASA GIBS aerosol optical depth as a global air-quality proxy heatmap.
+// Use MERRA-2 gridded aerosol analysis for continuous global coverage.
 const AIR_QUALITY_TILES = [
-  "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Aqua_Aerosol/default/default/GoogleMapsCompatible_Level6/{z}/{y}/{x}.png",
+  "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/" +
+    "MERRA2_Aerosol_Optical_Depth_Analysis_Monthly/default/default/" +
+    "GoogleMapsCompatible_Level6/{z}/{y}/{x}.png",
 ];
 
 export function ensureAirQualityLayer(map: Map): void {
@@ -14,8 +17,10 @@ export function ensureAirQualityLayer(map: Map): void {
       type: "raster",
       tiles: AIR_QUALITY_TILES,
       tileSize: 256,
+      bounds: [-180, -85.051129, 180, 85.051129],
+      minzoom: 0,
       maxzoom: 6,
-      attribution: "Air quality proxy: NASA GIBS (MODIS Aqua Aerosol)",
+      attribution: "Air quality proxy: NASA GIBS (MERRA-2 Aerosol Optical Depth Analysis, Monthly)",
     });
   }
 
@@ -26,6 +31,7 @@ export function ensureAirQualityLayer(map: Map): void {
       source: AIR_QUALITY_SOURCE_ID,
       paint: {
         "raster-opacity": 0.42,
+        "raster-fade-duration": 0,
       },
     });
   }

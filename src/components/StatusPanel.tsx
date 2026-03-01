@@ -6,6 +6,8 @@ type StatusPanelProps = {
   toggles: LayerToggleState;
   onToggle: (key: keyof LayerToggleState, next: boolean) => void;
   onSetAllLayers: (next: boolean) => void;
+  panelColor: string;
+  onPanelColorChange: (next: string) => void;
   utcNow: string;
   refreshTimes: RefreshTimes;
   quakeCount: number;
@@ -17,6 +19,8 @@ type StatusPanelProps = {
   militaryNonAmericanCount: number;
   airTrafficCount: number;
   airTrafficMilitaryCount: number;
+  shipsCount: number;
+  rocketLaunchCount: number;
   quakeStale: boolean;
   error: string | null;
 };
@@ -29,10 +33,24 @@ function formatIso(value?: string): string {
   return value;
 }
 
+function textColorForHex(hex: string): string {
+  const raw = hex.replace("#", "");
+  if (!/^[0-9a-fA-F]{6}$/.test(raw)) {
+    return "#0f172a";
+  }
+  const r = Number.parseInt(raw.slice(0, 2), 16);
+  const g = Number.parseInt(raw.slice(2, 4), 16);
+  const b = Number.parseInt(raw.slice(4, 6), 16);
+  const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+  return luminance < 150 ? "#f8fafc" : "#0f172a";
+}
+
 export function StatusPanel({
   toggles,
   onToggle,
   onSetAllLayers,
+  panelColor,
+  onPanelColorChange,
   utcNow,
   refreshTimes,
   quakeCount,
@@ -44,11 +62,16 @@ export function StatusPanel({
   militaryNonAmericanCount,
   airTrafficCount,
   airTrafficMilitaryCount,
+  shipsCount,
+  rocketLaunchCount,
   quakeStale,
   error,
 }: StatusPanelProps) {
+  const grayscalePresets = ["#f9fafb", "#e5e7eb", "#d1d5db", "#9ca3af", "#4b5563"];
+  const panelTextColor = textColorForHex(panelColor);
+
   return (
-    <aside className="status-panel">
+    <aside className="status-panel" style={{ backgroundColor: panelColor, color: panelTextColor }}>
       <h1>GeoChron MVP</h1>
 
       <section>
@@ -56,6 +79,27 @@ export function StatusPanel({
         <div className="quick-toggle-row">
           <button type="button" onClick={() => onSetAllLayers(true)}>All On</button>
           <button type="button" onClick={() => onSetAllLayers(false)}>All Off</button>
+        </div>
+        <div className="panel-color-row">
+          <label htmlFor="panel-color-picker">Overlay color</label>
+          <input
+            id="panel-color-picker"
+            type="color"
+            value={panelColor}
+            onChange={(event) => onPanelColorChange(event.target.value)}
+          />
+        </div>
+        <div className="panel-color-presets">
+          {grayscalePresets.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              className="panel-color-preset"
+              style={{ backgroundColor: preset }}
+              onClick={() => onPanelColorChange(preset)}
+              title={preset}
+            />
+          ))}
         </div>
       </section>
 
@@ -156,6 +200,14 @@ export function StatusPanel({
         <label>
           <input
             type="checkbox"
+            checked={toggles.rocketLaunches}
+            onChange={(event) => onToggle("rocketLaunches", event.target.checked)}
+          />
+          Rocket Launches (last/next 24h)
+        </label>
+        <label>
+          <input
+            type="checkbox"
             checked={toggles.airTrafficCivilian}
             onChange={(event) => onToggle("airTrafficCivilian", event.target.checked)}
           />
@@ -169,9 +221,13 @@ export function StatusPanel({
           />
           Military Flights
         </label>
-        <label className="placeholder-toggle">
-          <input type="checkbox" checked={toggles.ships} disabled onChange={(event) => onToggle("ships", event.target.checked)} />
-          Ships / AIS (placeholder)
+        <label>
+          <input
+            type="checkbox"
+            checked={toggles.ships}
+            onChange={(event) => onToggle("ships", event.target.checked)}
+          />
+          Baltic Boats
         </label>
       </section>
 
@@ -187,6 +243,8 @@ export function StatusPanel({
         <p>Non-US military bases: {militaryNonAmericanCount}</p>
         <p>Civilian flights: {airTrafficCount}</p>
         <p>Military flights: {airTrafficMilitaryCount}</p>
+        <p>Baltic boats: {shipsCount}</p>
+        <p>Rocket launches (48h): {rocketLaunchCount}</p>
         <p>Major cities refresh: {formatIso(refreshTimes.majorCities)}</p>
         <p>Country profiles refresh: {formatIso(refreshTimes.countryProfiles)}</p>
         <p>Military bases refresh: {formatIso(refreshTimes.militaryBases)}</p>
@@ -197,6 +255,8 @@ export function StatusPanel({
         <p>Sun analemma refresh: {formatIso(refreshTimes.sunAnalemma)}</p>
         <p>Weather radar refresh: {formatIso(refreshTimes.weatherRadar)}</p>
         <p>Air quality refresh: {formatIso(refreshTimes.airQuality)}</p>
+        <p>Baltic boats refresh: {formatIso(refreshTimes.ships)}</p>
+        <p>Rocket launches refresh: {formatIso(refreshTimes.rocketLaunches)}</p>
         <p>ISS tracker refresh: {formatIso(refreshTimes.issTracker)}</p>
         <p>Terminator refresh: {formatIso(refreshTimes.terminator)}</p>
         {quakeStale ? <p className="warn">Earthquake feed is currently stale.</p> : null}
