@@ -8,6 +8,8 @@ type StatusPanelProps = {
   onSetAllLayers: (next: boolean) => void;
   panelColor: string;
   onPanelColorChange: (next: string) => void;
+  brightnessPercent: number;
+  onBrightnessChange: (next: number) => void;
   utcNow: string;
   refreshTimes: RefreshTimes;
   quakeCount: number;
@@ -54,6 +56,8 @@ export function StatusPanel({
   onSetAllLayers,
   panelColor,
   onPanelColorChange,
+  brightnessPercent,
+  onBrightnessChange,
   utcNow,
   refreshTimes,
   quakeCount,
@@ -106,6 +110,21 @@ export function StatusPanel({
               title={preset}
             />
           ))}
+        </div>
+        <div className="brightness-row">
+          <label htmlFor="global-brightness-slider">Brightness</label>
+          <div className="brightness-control">
+            <input
+              id="global-brightness-slider"
+              type="range"
+              min={20}
+              max={100}
+              step={1}
+              value={brightnessPercent}
+              onChange={(event) => onBrightnessChange(Number(event.target.value))}
+            />
+            <span>{brightnessPercent}%</span>
+          </div>
         </div>
       </section>
 

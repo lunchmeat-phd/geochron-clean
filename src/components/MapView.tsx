@@ -135,6 +135,7 @@ export function MapView() {
   const [csgTotalSources, setCsgTotalSources] = useState(0);
   const [csgAverageConfidence, setCsgAverageConfidence] = useState(0);
   const [panelColor, setPanelColor] = useState("#ffffff");
+  const [brightnessPercent, setBrightnessPercent] = useState(100);
   const [quakeStale, setQuakeStale] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [earthquakeData, setEarthquakeDataState] = useState<UsgsEarthquakeCollection | null>(null);
@@ -950,8 +951,13 @@ export function MapView() {
     setPanelColor(next);
   };
 
+  const handleBrightnessChange = (next: number) => {
+    const clamped = Math.max(20, Math.min(100, next));
+    setBrightnessPercent(clamped);
+  };
+
   return (
-    <main className="map-shell">
+    <main className="map-shell" style={{ filter: `brightness(${brightnessPercent}%)` }}>
       <div ref={containerRef} className="map-container" />
       <StatusPanel
         toggles={toggles}
@@ -959,6 +965,8 @@ export function MapView() {
         onSetAllLayers={handleSetAllLayers}
         panelColor={panelColor}
         onPanelColorChange={handlePanelColorChange}
+        brightnessPercent={brightnessPercent}
+        onBrightnessChange={handleBrightnessChange}
         utcNow={utcNow}
         refreshTimes={refreshTimes}
         cityCount={cityCount}
