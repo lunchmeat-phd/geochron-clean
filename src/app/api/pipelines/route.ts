@@ -3,8 +3,8 @@ import type { GeoLineCollection, InfrastructureApiResponse } from "@/lib/infrast
 
 const PIPELINES_URL =
   "https://services6.arcgis.com/62zavqsrcK71xG8O/arcgis/rest/services/Global_Oil_and_Gas_Features/FeatureServer/13/query";
-const PAGE_SIZE = 2000;
-const MAX_PAGES = 24;
+const PAGE_SIZE = 1000;
+const MAX_PAGES = 10;
 const TTL_MS = 6 * 60 * 60 * 1000;
 
 type LineFeature = GeoJSON.Feature<GeoJSON.LineString | GeoJSON.MultiLineString, Record<string, unknown>>;
@@ -193,6 +193,19 @@ function bboxIntersects(a: [number, number, number, number], b: [number, number,
   return a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
 }
 
+function expandBounds(
+  bounds: [number, number, number, number],
+  lonPad: number,
+  latPad: number,
+): [number, number, number, number] {
+  return [
+    clamp(bounds[0] - lonPad, -180, 180),
+    clamp(bounds[1] - latPad, -90, 90),
+    clamp(bounds[2] + lonPad, -180, 180),
+    clamp(bounds[3] + latPad, -90, 90),
+  ];
+}
+
 function selectRanked(
   ranked: RankedFeature[],
   limit: number,
@@ -207,10 +220,42 @@ function selectRanked(
     return inView.slice(0, limit).map((entry) => entry.feature);
   }
 
+  // If the current viewport is sparse, widen selection radius so users still see
+  // nearby major pipelines instead of only far-away globally top-ranked segments.
+  const candidates = [...inView];
+  if (viewBounds) {
+    const expansions: Array<[number, number]> = [
+      [10, 6],
+      [20, 10],
+      [35, 16],
+      [55, 24],
+      [85, 35],
+    ];
+
+    for (const [lonPad, latPad] of expansions) {
+      if (candidates.length >= limit) {
+        break;
+      }
+
+      const expanded = expandBounds(viewBounds, lonPad, latPad);
+      for (const entry of ranked) {
+        if (candidates.length >= limit) {
+          break;
+        }
+        if (candidates.some((candidate) => candidate.id === entry.id)) {
+          continue;
+        }
+        if (bboxIntersects(entry.bbox, expanded)) {
+          candidates.push(entry);
+        }
+      }
+    }
+  }
+
   const picked: LineFeature[] = [];
   const seen = new Set<string>();
 
-  for (const entry of inView) {
+  for (const entry of candidates) {
     if (picked.length >= limit) {
       break;
     }
@@ -256,11 +301,12 @@ function buildRanked(data: GeoLineCollection): RankedFeature[] {
 
 async function fetchPipelines(): Promise<GeoLineCollection> {
   const features: LineFeature[] = [];
+  const outFields = "OBJECTID,Capacity,Throughput,Diameter,Shape__Length,Status,Commodity,Type";
 
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const params = new URLSearchParams({
       where: "1=1",
-      outFields: "*",
+      outFields,
       f: "geojson",
       outSR: "4326",
       returnGeometry: "true",
@@ -268,12 +314,23 @@ async function fetchPipelines(): Promise<GeoLineCollection> {
       resultOffset: String(page * PAGE_SIZE),
     });
 
-    const upstream = await fetch(`${PIPELINES_URL}?${params.toString()}`, {
-      cache: "no-store",
-      signal: AbortSignal.timeout(15000),
-    });
+    let upstream: Response;
+    try {
+      upstream = await fetch(`${PIPELINES_URL}?${params.toString()}`, {
+        cache: "no-store",
+        signal: AbortSignal.timeout(12000),
+      });
+    } catch (error) {
+      if (features.length > 0) {
+        break;
+      }
+      throw error;
+    }
 
     if (!upstream.ok) {
+      if (features.length > 0) {
+        break;
+      }
       throw new Error(`Pipeline fetch failed (${upstream.status})`);
     }
 
@@ -319,6 +376,30 @@ export async function GET(request: NextRequest) {
     const data = await fetchPipelines();
     const ranked = buildRanked(data);
     const fetchedAt = new Date().toISOString();
+
+    if (ranked.length === 0) {
+      if (cache && cache.ranked.length > 0) {
+        const payload: InfrastructureApiResponse = {
+          data: {
+            type: "FeatureCollection",
+            features: selectRanked(cache.ranked, limit, viewBounds),
+          },
+          fetchedAt: cache.fetchedAt,
+          stale: true,
+          error: "Pipeline source returned no features; showing last cached dataset.",
+        };
+
+        return NextResponse.json(payload, { status: 200 });
+      }
+
+      const payload: InfrastructureApiResponse = {
+        data: EMPTY_LINES,
+        fetchedAt,
+        stale: true,
+        error: "Pipeline source returned no features.",
+      };
+      return NextResponse.json(payload, { status: 200 });
+    }
 
     cache = {
       data,

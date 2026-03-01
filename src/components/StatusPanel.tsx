@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import type { LayerToggleState, RefreshTimes } from "@/layers";
 
 type StatusPanelProps = {
@@ -14,6 +15,8 @@ type StatusPanelProps = {
   onPanelColorChange: (next: string) => void;
   brightnessPercent: number;
   onBrightnessChange: (next: number) => void;
+  stockTickerEnabled: boolean;
+  onStockTickerEnabledChange: (next: boolean) => void;
   utcNow: string;
   refreshTimes: RefreshTimes;
   quakeCount: number;
@@ -42,6 +45,48 @@ function formatIso(value?: string): string {
   return value;
 }
 
+function formatLocalHeader(value: string): { date: string; time: string } {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return { date: "Unknown date", time: "Unknown time" };
+  }
+
+  const date = parsed.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
+
+  const time = parsed.toLocaleTimeString("en-US", {
+    hour12: false,
+  });
+
+  return { date, time };
+}
+
+function formatUtcHeader(value: string): { date: string; time: string } {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return { date: "Unknown date", time: "Unknown time" };
+  }
+
+  const date = parsed.toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    weekday: "short",
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
+
+  const time = parsed.toLocaleTimeString("en-US", {
+    timeZone: "UTC",
+    hour12: false,
+  });
+
+  return { date, time };
+}
+
 function textColorForHex(hex: string): string {
   const raw = hex.replace("#", "");
   if (!/^[0-9a-fA-F]{6}$/.test(raw)) {
@@ -66,6 +111,8 @@ export function StatusPanel({
   onPanelColorChange,
   brightnessPercent,
   onBrightnessChange,
+  stockTickerEnabled,
+  onStockTickerEnabledChange,
   utcNow,
   refreshTimes,
   quakeCount,
@@ -85,23 +132,79 @@ export function StatusPanel({
   quakeStale,
   error,
 }: StatusPanelProps) {
+  const [statusCollapsed, setStatusCollapsed] = useState(false);
+  const [showPanelControlVisible, setShowPanelControlVisible] = useState(true);
+  const idleTimerRef = useRef<number | null>(null);
   const grayscalePresets = ["#f9fafb", "#e5e7eb", "#d1d5db", "#9ca3af", "#4b5563"];
   const panelTextColor = textColorForHex(panelColor);
+  const localHeader = formatLocalHeader(utcNow);
+  const utcHeader = formatUtcHeader(utcNow);
+
+  useEffect(() => {
+    const clearIdleTimer = () => {
+      if (idleTimerRef.current !== null) {
+        window.clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
+    };
+
+    const startIdleTimer = () => {
+      clearIdleTimer();
+      idleTimerRef.current = window.setTimeout(() => {
+        setShowPanelControlVisible(false);
+      }, 1800);
+    };
+
+    const handlePointerActivity = () => {
+      if (!collapsed) {
+        return;
+      }
+      setShowPanelControlVisible(true);
+      startIdleTimer();
+    };
+
+    if (!collapsed) {
+      clearIdleTimer();
+      setShowPanelControlVisible(true);
+      return () => {
+        clearIdleTimer();
+      };
+    }
+
+    setShowPanelControlVisible(true);
+    startIdleTimer();
+    window.addEventListener("mousemove", handlePointerActivity);
+    window.addEventListener("pointermove", handlePointerActivity);
+
+    return () => {
+      clearIdleTimer();
+      window.removeEventListener("mousemove", handlePointerActivity);
+      window.removeEventListener("pointermove", handlePointerActivity);
+    };
+  }, [collapsed]);
 
   return (
     <aside
-      className={`status-panel${stealthMode ? " status-panel-stealth" : ""}`}
+      className={`status-panel${stealthMode ? " status-panel-stealth" : ""}${collapsed ? " status-panel-collapsed" : ""}`}
       style={{
-        backgroundColor: stealthMode ? "rgba(2, 8, 20, 0.9)" : panelColor,
+        backgroundColor: stealthMode ? "#000000" : panelColor,
         color: stealthMode ? "#d1fae5" : panelTextColor,
       }}
     >
-      <h1>GeoChron MVP</h1>
+      <h1>World Clock Plus</h1>
+      <p className="toolbar-clock">Local {localHeader.date} {localHeader.time}</p>
+      <p className="toolbar-clock">UTC {utcHeader.date} {utcHeader.time}</p>
       <div className="panel-top-row">
-        <button type="button" className="panel-collapse-btn" onClick={() => onCollapsedChange(!collapsed)}>
-          Hide Panel
+        <button
+          type="button"
+          className={`panel-collapse-btn${collapsed && !showPanelControlVisible ? " panel-control-hidden" : ""}`}
+          onClick={() => onCollapsedChange(!collapsed)}
+        >
+          {collapsed ? "Expand Panel" : "Hide Panel"}
         </button>
       </div>
+      {collapsed ? null : (
+        <>
 
       <section>
         <h2>Quick</h2>
@@ -154,6 +257,14 @@ export function StatusPanel({
             <span>{brightnessPercent}%</span>
           </div>
         </div>
+        <label>
+          <input
+            type="checkbox"
+            checked={stockTickerEnabled}
+            onChange={(event) => onStockTickerEnabledChange(event.target.checked)}
+          />
+          Stock Ticker
+        </label>
       </section>
 
       <section>
@@ -300,38 +411,49 @@ export function StatusPanel({
       </section>
 
       <section>
-        <h2>Status</h2>
-        <p>UTC now: {utcNow}</p>
-        <p>Major cities: {cityCount}</p>
-        <p>Country profiles: {countryCount}</p>
-        <p>Earthquakes: {quakeCount} events</p>
-        <p>Oil pipelines: {pipelineCount}</p>
-        <p>Fiber cable segments: {fiberCableCount}</p>
-        <p>US military bases: {militaryAmericanCount}</p>
-        <p>Non-US military bases: {militaryNonAmericanCount}</p>
-        <p>Civilian flights: {airTrafficCount}</p>
-        <p>Military flights: {airTrafficMilitaryCount}</p>
-        <p>Rocket launches (48h): {rocketLaunchCount}</p>
-        <p>Carrier strike groups: {carrierStrikeGroupCount}</p>
-        <p>CSG active sources: {csgActiveSources}/{csgTotalSources}</p>
-        <p>CSG avg confidence: {csgAverageConfidence}/100</p>
-        <p>Major cities refresh: {formatIso(refreshTimes.majorCities)}</p>
-        <p>Country profiles refresh: {formatIso(refreshTimes.countryProfiles)}</p>
-        <p>Military bases refresh: {formatIso(refreshTimes.militaryBases)}</p>
-        <p>Earthquake refresh: {formatIso(refreshTimes.earthquakes)}</p>
-        <p>Pipelines refresh: {formatIso(refreshTimes.oilPipelines)}</p>
-        <p>Fiber refresh: {formatIso(refreshTimes.fiberCables)}</p>
-        <p>Air traffic refresh: {formatIso(refreshTimes.airTraffic)}</p>
-        <p>Sun analemma refresh: {formatIso(refreshTimes.sunAnalemma)}</p>
-        <p>Weather radar refresh: {formatIso(refreshTimes.weatherRadar)}</p>
-        <p>Air quality refresh: {formatIso(refreshTimes.airQuality)}</p>
-        <p>Rocket launches refresh: {formatIso(refreshTimes.rocketLaunches)}</p>
-        <p>Carrier strike groups refresh: {formatIso(refreshTimes.carrierStrikeGroups)}</p>
-        <p>ISS tracker refresh: {formatIso(refreshTimes.issTracker)}</p>
-        <p>Terminator refresh: {formatIso(refreshTimes.terminator)}</p>
-        {quakeStale ? <p className="warn">Earthquake feed is currently stale.</p> : null}
-        {error ? <p className="error">{error}</p> : null}
+        <div className="status-section-header">
+          <h2>Status</h2>
+          <button type="button" className="section-collapse-btn" onClick={() => setStatusCollapsed((prev) => !prev)}>
+            {statusCollapsed ? "Show" : "Hide"}
+          </button>
+        </div>
+        {statusCollapsed ? null : (
+          <>
+            <p>UTC now: {utcNow}</p>
+            <p>Major cities: {cityCount}</p>
+            <p>Country profiles: {countryCount}</p>
+            <p>Earthquakes: {quakeCount} events</p>
+            <p>Oil pipelines: {pipelineCount}</p>
+            <p>Fiber cable segments: {fiberCableCount}</p>
+            <p>US military bases: {militaryAmericanCount}</p>
+            <p>Non-US military bases: {militaryNonAmericanCount}</p>
+            <p>Civilian flights: {airTrafficCount}</p>
+            <p>Military flights: {airTrafficMilitaryCount}</p>
+            <p>Rocket launches (48h): {rocketLaunchCount}</p>
+            <p>Carrier strike groups: {carrierStrikeGroupCount}</p>
+            <p>CSG active sources: {csgActiveSources}/{csgTotalSources}</p>
+            <p>CSG avg confidence: {csgAverageConfidence}/100</p>
+            <p>Major cities refresh: {formatIso(refreshTimes.majorCities)}</p>
+            <p>Country profiles refresh: {formatIso(refreshTimes.countryProfiles)}</p>
+            <p>Military bases refresh: {formatIso(refreshTimes.militaryBases)}</p>
+            <p>Earthquake refresh: {formatIso(refreshTimes.earthquakes)}</p>
+            <p>Pipelines refresh: {formatIso(refreshTimes.oilPipelines)}</p>
+            <p>Fiber refresh: {formatIso(refreshTimes.fiberCables)}</p>
+            <p>Air traffic refresh: {formatIso(refreshTimes.airTraffic)}</p>
+            <p>Sun analemma refresh: {formatIso(refreshTimes.sunAnalemma)}</p>
+            <p>Weather radar refresh: {formatIso(refreshTimes.weatherRadar)}</p>
+            <p>Air quality refresh: {formatIso(refreshTimes.airQuality)}</p>
+            <p>Rocket launches refresh: {formatIso(refreshTimes.rocketLaunches)}</p>
+            <p>Carrier strike groups refresh: {formatIso(refreshTimes.carrierStrikeGroups)}</p>
+            <p>ISS tracker refresh: {formatIso(refreshTimes.issTracker)}</p>
+            <p>Terminator refresh: {formatIso(refreshTimes.terminator)}</p>
+            {quakeStale ? <p className="warn">Earthquake feed is currently stale.</p> : null}
+            {error ? <p className="error">{error}</p> : null}
+          </>
+        )}
       </section>
+        </>
+      )}
     </aside>
   );
 }

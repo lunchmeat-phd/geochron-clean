@@ -22,9 +22,9 @@ export function ensureOilPipelinesLayer(map: Map): void {
       source: OIL_PIPELINES_SOURCE_ID,
       paint: {
         "line-color": "#f59e0b",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 1, 1.1, 4, 2.2, 7, 3.2],
-        "line-opacity": 0.9,
-        "line-blur": 0.15,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 1, 1.9, 4, 3, 7, 4.2],
+        "line-opacity": 0.96,
+        "line-blur": 0.25,
       },
     });
   }

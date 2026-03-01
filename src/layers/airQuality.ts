@@ -30,7 +30,7 @@ export function ensureAirQualityLayer(map: Map): void {
       type: "raster",
       source: AIR_QUALITY_SOURCE_ID,
       paint: {
-        "raster-opacity": 0.42,
+        "raster-opacity": 0.252,
         "raster-fade-duration": 0,
       },
     });

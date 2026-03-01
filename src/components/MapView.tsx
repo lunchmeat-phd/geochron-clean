@@ -69,6 +69,19 @@ import type { UsgsEarthquakeCollection } from "@/lib/earthquakes";
 import { isMilitaryAircraftModel } from "@/lib/military";
 import { StatusPanel } from "@/components/StatusPanel";
 
+type StockQuote = {
+  symbol: string;
+  price: number;
+  changePercent: number | null;
+};
+
+type StocksApiResponse = {
+  quotes: StockQuote[];
+  fetchedAt: string;
+  stale: boolean;
+  error?: string;
+};
+
 const DEFAULT_TOGGLES: LayerToggleState = {
   terminator: true,
   sunAnalemma: true,
@@ -138,6 +151,9 @@ export function MapView() {
   const [brightnessPercent, setBrightnessPercent] = useState(100);
   const [stealthMode, setStealthMode] = useState(false);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
+  const [stockTickerEnabled, setStockTickerEnabled] = useState(true);
+  const [stockQuotes, setStockQuotes] = useState<StockQuote[]>([]);
+  const [stockError, setStockError] = useState<string | null>(null);
   const [quakeStale, setQuakeStale] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [earthquakeData, setEarthquakeDataState] = useState<UsgsEarthquakeCollection | null>(null);
@@ -310,6 +326,40 @@ export function MapView() {
 
     return () => window.clearInterval(interval);
   }, [mapReady]);
+
+  useEffect(() => {
+    let active = true;
+
+    const refreshStocks = async () => {
+      try {
+        const response = await fetch("/api/stocks", { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`Stocks endpoint failed (${response.status})`);
+        }
+
+        const payload = (await response.json()) as StocksApiResponse;
+        if (!active) {
+          return;
+        }
+
+        setStockQuotes(payload.quotes);
+        setStockError(payload.error ?? null);
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+        setStockError(err instanceof Error ? err.message : "Stocks feed unavailable");
+      }
+    };
+
+    void refreshStocks();
+    const interval = window.setInterval(refreshStocks, 60_000);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -962,6 +1012,20 @@ export function MapView() {
     setStealthMode(next);
   };
 
+  const renderTickerItems = (keyPrefix: string) =>
+    stockQuotes.map((quote) => {
+      const changeText =
+        quote.changePercent === null ? "N/A" : `${quote.changePercent >= 0 ? "+" : ""}${quote.changePercent.toFixed(2)}%`;
+      const changeClass =
+        quote.changePercent === null ? "stock-neutral" : quote.changePercent >= 0 ? "stock-up" : "stock-down";
+
+      return (
+        <span key={`${keyPrefix}-${quote.symbol}`} className="stock-item">
+          <strong>{quote.symbol}</strong> {quote.price.toFixed(2)} <span className={changeClass}>{changeText}</span>
+        </span>
+      );
+    });
+
   return (
     <main className={`map-shell${stealthMode ? " stealth-mode" : ""}`} style={{ filter: `brightness(${brightnessPercent}%)` }}>
       <div
@@ -976,45 +1040,41 @@ export function MapView() {
         }
       />
       {stealthMode ? <div className="stealth-veil" aria-hidden="true" /> : null}
-      {panelCollapsed ? (
-        <button type="button" className="panel-open-btn" onClick={() => setPanelCollapsed(false)}>
-          Open Panel
-        </button>
-      ) : (
-        <StatusPanel
-          collapsed={panelCollapsed}
-          onCollapsedChange={setPanelCollapsed}
-          toggles={toggles}
-          onToggle={handleToggle}
-          onSetAllLayers={handleSetAllLayers}
-          stealthMode={stealthMode}
-          onStealthModeChange={handleStealthModeChange}
-          panelColor={panelColor}
-          onPanelColorChange={handlePanelColorChange}
-          brightnessPercent={brightnessPercent}
-          onBrightnessChange={handleBrightnessChange}
-          utcNow={utcNow}
-          refreshTimes={refreshTimes}
-          cityCount={cityCount}
-          countryCount={countryCount}
-          quakeCount={quakeCount}
-          pipelineCount={pipelineCount}
-          fiberCableCount={fiberCableCount}
-          militaryAmericanCount={militaryAmericanCount}
-          militaryNonAmericanCount={militaryNonAmericanCount}
-          airTrafficCount={airTrafficCount}
-          airTrafficMilitaryCount={airTrafficMilitaryCount}
-          rocketLaunchCount={rocketLaunchCount}
-          carrierStrikeGroupCount={carrierStrikeGroupCount}
-          csgActiveSources={csgActiveSources}
-          csgTotalSources={csgTotalSources}
-          csgAverageConfidence={csgAverageConfidence}
-          quakeStale={quakeStale}
-          error={error}
-        />
-      )}
+      <StatusPanel
+        collapsed={panelCollapsed}
+        onCollapsedChange={setPanelCollapsed}
+        toggles={toggles}
+        onToggle={handleToggle}
+        onSetAllLayers={handleSetAllLayers}
+        stealthMode={stealthMode}
+        onStealthModeChange={handleStealthModeChange}
+        panelColor={panelColor}
+        onPanelColorChange={handlePanelColorChange}
+        brightnessPercent={brightnessPercent}
+        onBrightnessChange={handleBrightnessChange}
+        stockTickerEnabled={stockTickerEnabled}
+        onStockTickerEnabledChange={setStockTickerEnabled}
+        utcNow={utcNow}
+        refreshTimes={refreshTimes}
+        cityCount={cityCount}
+        countryCount={countryCount}
+        quakeCount={quakeCount}
+        pipelineCount={pipelineCount}
+        fiberCableCount={fiberCableCount}
+        militaryAmericanCount={militaryAmericanCount}
+        militaryNonAmericanCount={militaryNonAmericanCount}
+        airTrafficCount={airTrafficCount}
+        airTrafficMilitaryCount={airTrafficMilitaryCount}
+        rocketLaunchCount={rocketLaunchCount}
+        carrierStrikeGroupCount={carrierStrikeGroupCount}
+        csgActiveSources={csgActiveSources}
+        csgTotalSources={csgTotalSources}
+        csgAverageConfidence={csgAverageConfidence}
+        quakeStale={quakeStale}
+        error={error}
+      />
       {toggles.issTracker ? (
-        <aside className="iss-feed-panel" aria-label="Live ISS Camera Feed">
+        <aside className={`iss-feed-panel${stealthMode ? " iss-feed-panel-stealth" : ""}`} aria-label="Live ISS Camera Feed">
           <div className="iss-feed-title">
             <span>ISS Live Feed</span>
             <a href={ISS_LIVE_FALLBACK_URL} target="_blank" rel="noreferrer">
@@ -1030,6 +1090,22 @@ export function MapView() {
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
           />
+        </aside>
+      ) : null}
+      {stockTickerEnabled ? (
+        <aside className={`stock-ticker${stealthMode ? " stock-ticker-stealth" : ""}`} aria-label="Stock ticker">
+          <div className="stock-ticker-track">
+            {stockQuotes.length > 0 ? (
+              <>
+                {renderTickerItems("a")}
+                {renderTickerItems("b")}
+              </>
+            ) : (
+              <span className="stock-item stock-neutral">
+                {stockError ? `Stocks unavailable: ${stockError}` : "Loading stock quotes..."}
+              </span>
+            )}
+          </div>
         </aside>
       ) : null}
     </main>
