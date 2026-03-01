@@ -1,5 +1,6 @@
 import maplibregl, { type GeoJSONSource, type Map, type MapLayerMouseEvent, type Popup } from "maplibre-gl";
 import type { MilitaryBasesApiResponse, MilitaryBasesCollection } from "@/lib/militaryBases";
+import { ICONS } from "@/layers/icons";
 
 export const MILITARY_BASES_SOURCE_ID = "military-bases-source";
 export const MILITARY_BASES_US_LAYER_ID = "military-bases-us-layer";
@@ -38,15 +39,14 @@ export function ensureMilitaryBasesLayer(map: Map): void {
   if (!map.getLayer(MILITARY_BASES_NON_US_LAYER_ID)) {
     map.addLayer({
       id: MILITARY_BASES_NON_US_LAYER_ID,
-      type: "circle",
+      type: "symbol",
       source: MILITARY_BASES_SOURCE_ID,
       filter: ["==", ["coalesce", ["get", "american"], false], false],
-      paint: {
-        "circle-color": "#38bdf8",
-        "circle-radius": ["interpolate", ["linear"], ["zoom"], 1, 2.2, 4, 3.6, 7, 5.2],
-        "circle-opacity": 0.9,
-        "circle-stroke-color": "#082f49",
-        "circle-stroke-width": 0.8,
+      layout: {
+        "icon-image": ICONS.militaryBaseNonUs,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 1.02, 4, 0.82, 7, 0.64],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
       },
     });
   }
@@ -54,15 +54,14 @@ export function ensureMilitaryBasesLayer(map: Map): void {
   if (!map.getLayer(MILITARY_BASES_US_LAYER_ID)) {
     map.addLayer({
       id: MILITARY_BASES_US_LAYER_ID,
-      type: "circle",
+      type: "symbol",
       source: MILITARY_BASES_SOURCE_ID,
       filter: ["==", ["coalesce", ["get", "american"], false], true],
-      paint: {
-        "circle-color": "#f43f5e",
-        "circle-radius": ["interpolate", ["linear"], ["zoom"], 1, 2.5, 4, 4.2, 7, 6],
-        "circle-opacity": 0.93,
-        "circle-stroke-color": "#4c0519",
-        "circle-stroke-width": 1,
+      layout: {
+        "icon-image": ICONS.militaryBaseUs,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 1.08, 4, 0.86, 7, 0.68],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
       },
     });
   }

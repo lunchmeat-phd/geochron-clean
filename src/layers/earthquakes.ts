@@ -1,5 +1,6 @@
 import maplibregl, { type GeoJSONSource, type Map, type MapLayerMouseEvent, type Popup } from "maplibre-gl";
 import type { EarthquakesApiResponse, UsgsEarthquakeCollection } from "@/lib/earthquakes";
+import { ICONS } from "@/layers/icons";
 
 export const EARTHQUAKE_SOURCE_ID = "earthquakes-source";
 export const EARTHQUAKE_LAYER_ID = "earthquakes-layer";
@@ -36,25 +37,16 @@ export function ensureEarthquakeLayer(map: Map): void {
   if (!map.getLayer(EARTHQUAKE_LAYER_ID)) {
     map.addLayer({
       id: EARTHQUAKE_LAYER_ID,
-      type: "circle",
+      type: "symbol",
       source: EARTHQUAKE_SOURCE_ID,
-      paint: {
-        "circle-color": "#f97316",
-        "circle-opacity": 0.85,
-        "circle-stroke-color": "#7c2d12",
-        "circle-stroke-width": 1,
-        "circle-radius": [
-          "interpolate",
-          ["linear"],
-          ["coalesce", ["get", "mag"], 0],
-          0,
-          3,
-          2,
-          6,
-          4,
-          10,
-          7,
-          16,
+      layout: {
+        "icon-image": ICONS.earthquake,
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+        "icon-size": [
+          "*",
+          ["interpolate", ["linear"], ["zoom"], 1, 1.2, 4, 0.95, 7, 0.72],
+          ["interpolate", ["linear"], ["coalesce", ["get", "mag"], 0], 0, 0.45, 2, 0.65, 4, 0.95, 7, 1.25],
         ],
       },
     });

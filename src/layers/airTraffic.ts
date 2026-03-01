@@ -2,6 +2,7 @@ import type { FeatureCollection, Point } from "geojson";
 import maplibregl, { type GeoJSONSource, type Map, type MapLayerMouseEvent, type Popup } from "maplibre-gl";
 import type { AdsbFlight, FlightsApiResponse } from "@/lib/flights";
 import { isMilitaryAircraftModel } from "@/lib/military";
+import { ICONS } from "@/layers/icons";
 
 export const AIR_TRAFFIC_SOURCE_ID = "air-traffic-source";
 export const AIR_TRAFFIC_LAYER_ID = "air-traffic-layer";
@@ -59,16 +60,17 @@ export function ensureAirTrafficLayer(map: Map): void {
   if (!map.getLayer(AIR_TRAFFIC_LAYER_ID)) {
     map.addLayer({
       id: AIR_TRAFFIC_LAYER_ID,
-      type: "circle",
+      type: "symbol",
       source: AIR_TRAFFIC_SOURCE_ID,
       minzoom: 4,
       filter: ["==", ["get", "military"], false],
-      paint: {
-        "circle-color": "#38bdf8",
-        "circle-radius": 2.8,
-        "circle-opacity": 0.85,
-        "circle-stroke-color": "#0c4a6e",
-        "circle-stroke-width": 0.6,
+      layout: {
+        "icon-image": ICONS.aircraftCivilian,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 4, 0.9, 6, 0.72, 8, 0.56],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+        "icon-rotate": ["coalesce", ["get", "heading"], 0],
+        "icon-rotation-alignment": "map",
       },
     });
   }
@@ -76,19 +78,19 @@ export function ensureAirTrafficLayer(map: Map): void {
   if (!map.getLayer(AIR_TRAFFIC_MIL_LAYER_ID)) {
     map.addLayer({
       id: AIR_TRAFFIC_MIL_LAYER_ID,
-      type: "circle",
+      type: "symbol",
       source: AIR_TRAFFIC_SOURCE_ID,
       filter: ["==", ["get", "military"], true],
-      paint: {
-        "circle-color": "#fb7185",
-        "circle-radius": 4.5,
-        "circle-opacity": 0.95,
-        "circle-stroke-color": "#881337",
-        "circle-stroke-width": 1.1,
+      layout: {
+        "icon-image": ICONS.aircraftMilitary,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 1.05, 4, 0.86, 8, 0.68],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+        "icon-rotate": ["coalesce", ["get", "heading"], 0],
+        "icon-rotation-alignment": "map",
       },
     });
   }
-
 }
 
 export function setAirTrafficVisibility(map: Map, visible: boolean): void {

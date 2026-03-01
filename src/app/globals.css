@@ -66,6 +66,13 @@ body,
   margin: 4px 0;
 }
 
+.layer-key-icon {
+  display: inline-block;
+  width: 1.2em;
+  text-align: center;
+  margin: 0 4px 0 3px;
+}
+
 .quick-toggle-row {
   display: flex;
   gap: 8px;

@@ -1,5 +1,6 @@
 import maplibregl, { type GeoJSONSource, type Map, type MapLayerMouseEvent, type Popup } from "maplibre-gl";
 import type { CountryProfileApiResponse, CountryProfilesApiResponse, CountryProfilesCollection } from "@/lib/countryProfiles";
+import { ICONS } from "@/layers/icons";
 
 export const COUNTRY_PROFILES_SOURCE_ID = "country-profiles-source";
 export const COUNTRY_PROFILES_LAYER_ID = "country-profiles-layer";
@@ -62,14 +63,13 @@ export function ensureCountryProfilesLayer(map: Map): void {
   if (!map.getLayer(COUNTRY_PROFILES_LAYER_ID)) {
     map.addLayer({
       id: COUNTRY_PROFILES_LAYER_ID,
-      type: "circle",
+      type: "symbol",
       source: COUNTRY_PROFILES_SOURCE_ID,
-      paint: {
-        "circle-color": "#c4b5fd",
-        "circle-opacity": 0.86,
-        "circle-stroke-color": "#312e81",
-        "circle-stroke-width": 0.8,
-        "circle-radius": ["interpolate", ["linear"], ["zoom"], 1, 2, 4, 3.3, 7, 5],
+      layout: {
+        "icon-image": ICONS.countryProfile,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 0.92, 4, 0.74, 7, 0.58],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
       },
     });
   }

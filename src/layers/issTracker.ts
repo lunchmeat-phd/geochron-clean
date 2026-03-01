@@ -1,6 +1,7 @@
 import type { FeatureCollection, LineString, Point } from "geojson";
 import type { GeoJSONSource, Map } from "maplibre-gl";
 import type { IssOrbitPoint, IssTrackerResponse } from "@/lib/iss";
+import { ICONS } from "@/layers/icons";
 
 export const ISS_SOURCE_ID = "iss-source";
 export const ISS_POINT_LAYER_ID = "iss-point-layer";
@@ -153,14 +154,14 @@ export function ensureIssTrackerLayer(map: Map): void {
   if (!map.getLayer(ISS_POINT_LAYER_ID)) {
     map.addLayer({
       id: ISS_POINT_LAYER_ID,
-      type: "circle",
+      type: "symbol",
       source: ISS_SOURCE_ID,
       filter: ["==", ["get", "kind"], "iss"],
-      paint: {
-        "circle-color": "#22d3ee",
-        "circle-radius": 5,
-        "circle-stroke-color": "#083344",
-        "circle-stroke-width": 1,
+      layout: {
+        "icon-image": ICONS.iss,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 1.08, 4, 0.86, 7, 0.68],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
       },
     });
   }

@@ -1,6 +1,7 @@
 import type { FeatureCollection, LineString, Point } from "geojson";
 import type { GeoJSONSource, Map } from "maplibre-gl";
 import { getSunPosition } from "@/lib/terminator";
+import { ICONS } from "@/layers/icons";
 
 export const SUN_ANALEMMA_SOURCE_ID = "sun-analemma-source";
 export const SUN_ANALEMMA_LINE_LAYER_ID = "sun-analemma-line-layer";
@@ -113,14 +114,14 @@ export function ensureSunAnalemmaLayer(map: Map): void {
   if (!map.getLayer(SUN_POSITION_LAYER_ID)) {
     map.addLayer({
       id: SUN_POSITION_LAYER_ID,
-      type: "circle",
+      type: "symbol",
       source: SUN_ANALEMMA_SOURCE_ID,
       filter: ["==", ["get", "kind"], "sun"],
-      paint: {
-        "circle-color": "#facc15",
-        "circle-radius": 5,
-        "circle-stroke-color": "#854d0e",
-        "circle-stroke-width": 1,
+      layout: {
+        "icon-image": ICONS.sun,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 0.96, 4, 0.78, 7, 0.62],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
       },
     });
   }

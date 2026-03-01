@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl, { type Map } from "maplibre-gl";
+import { ensureMapIcons } from "@/layers/icons";
 import {
   attachAirTrafficHoverTooltip,
   attachEarthquakeHoverTooltip,
@@ -179,6 +180,12 @@ export function MapView() {
           setError(err instanceof Error ? err.message : "Layer initialization error");
         }
       };
+
+      try {
+        ensureMapIcons(map);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load map icons");
+      }
 
       safeRun(() => ensureEarthquakeLayer(map));
       safeRun(() => ensureTerminatorLayer(map));

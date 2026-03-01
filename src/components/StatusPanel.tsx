@@ -117,6 +117,7 @@ export function StatusPanel({
             checked={toggles.terminator}
             onChange={(event) => onToggle("terminator", event.target.checked)}
           />
+          <span className="layer-key-icon" aria-hidden="true">🌙</span>
           Terminator
         </label>
         <label>
@@ -125,6 +126,7 @@ export function StatusPanel({
             checked={toggles.sunAnalemma}
             onChange={(event) => onToggle("sunAnalemma", event.target.checked)}
           />
+          <span className="layer-key-icon" aria-hidden="true">☀️</span>
           Sun Analemma
         </label>
         <label>
@@ -133,6 +135,7 @@ export function StatusPanel({
             checked={toggles.majorCities}
             onChange={(event) => onToggle("majorCities", event.target.checked)}
           />
+          <span className="layer-key-icon" aria-hidden="true">🏙️</span>
           Major Cities
         </label>
         <label>
@@ -141,6 +144,7 @@ export function StatusPanel({
             checked={toggles.countryProfiles}
             onChange={(event) => onToggle("countryProfiles", event.target.checked)}
           />
+          <span className="layer-key-icon" aria-hidden="true">🗺️</span>
           Country Profiles
         </label>
         <label>
@@ -149,6 +153,7 @@ export function StatusPanel({
             checked={toggles.earthquakes}
             onChange={(event) => onToggle("earthquakes", event.target.checked)}
           />
+          <span className="layer-key-icon" aria-hidden="true">💥</span>
           Earthquakes
         </label>
         <label>
@@ -157,6 +162,7 @@ export function StatusPanel({
             checked={toggles.weatherRadar}
             onChange={(event) => onToggle("weatherRadar", event.target.checked)}
           />
+          <span className="layer-key-icon" aria-hidden="true">🌧️</span>
           Weather Radar
         </label>
         <label>
@@ -165,6 +171,7 @@ export function StatusPanel({
             checked={toggles.airQuality}
             onChange={(event) => onToggle("airQuality", event.target.checked)}
           />
+          <span className="layer-key-icon" aria-hidden="true">🌫️</span>
           Air Quality
         </label>
         <label>
@@ -173,6 +180,7 @@ export function StatusPanel({
             checked={toggles.oilPipelines}
             onChange={(event) => onToggle("oilPipelines", event.target.checked)}
           />
+          <span className="layer-key-icon" aria-hidden="true">🛢️</span>
           Oil Pipelines
         </label>
         <label>
@@ -181,6 +189,7 @@ export function StatusPanel({
             checked={toggles.fiberCables}
             onChange={(event) => onToggle("fiberCables", event.target.checked)}
           />
+          <span className="layer-key-icon" aria-hidden="true">🔌</span>
           Fiber Cables (Undersea)
         </label>
         <label>
@@ -189,6 +198,7 @@ export function StatusPanel({
             checked={toggles.militaryBases}
             onChange={(event) => onToggle("militaryBases", event.target.checked)}
           />
+          <span className="layer-key-icon" aria-hidden="true">🛡️</span>
           Military Bases
           <span className="legend-dot legend-us" />
           US
@@ -201,6 +211,7 @@ export function StatusPanel({
             checked={toggles.issTracker}
             onChange={(event) => onToggle("issTracker", event.target.checked)}
           />
+          <span className="layer-key-icon" aria-hidden="true">🛰️</span>
           ISS Tracker
         </label>
         <label>
@@ -209,6 +220,7 @@ export function StatusPanel({
             checked={toggles.rocketLaunches}
             onChange={(event) => onToggle("rocketLaunches", event.target.checked)}
           />
+          <span className="layer-key-icon" aria-hidden="true">🚀</span>
           Rocket Launches (last/next 24h)
         </label>
         <label>
@@ -217,6 +229,7 @@ export function StatusPanel({
             checked={toggles.carrierStrikeGroups}
             onChange={(event) => onToggle("carrierStrikeGroups", event.target.checked)}
           />
+          <span className="layer-key-icon" aria-hidden="true">🚢</span>
           Carrier Strike Groups (Estimated)
         </label>
         <label>
@@ -225,6 +238,7 @@ export function StatusPanel({
             checked={toggles.airTrafficCivilian}
             onChange={(event) => onToggle("airTrafficCivilian", event.target.checked)}
           />
+          <span className="layer-key-icon" aria-hidden="true">✈️</span>
           Civilian Flights
         </label>
         <label>
@@ -233,6 +247,7 @@ export function StatusPanel({
             checked={toggles.airTrafficMilitary}
             onChange={(event) => onToggle("airTrafficMilitary", event.target.checked)}
           />
+          <span className="layer-key-icon" aria-hidden="true">🛩️</span>
           Military Flights
         </label>
       </section>

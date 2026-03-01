@@ -1,22 +1,9 @@
 import maplibregl, { type GeoJSONSource, type Map, type MapLayerMouseEvent, type Popup } from "maplibre-gl";
 import type { RocketLaunchApiResponse, RocketLaunchCollection } from "@/lib/launches";
+import { ICONS } from "@/layers/icons";
 
 export const ROCKET_LAUNCHES_SOURCE_ID = "rocket-launches-source";
 export const ROCKET_LAUNCHES_LAYER_ID = "rocket-launches-layer";
-
-function providerColor(provider: unknown): string {
-  const text = typeof provider === "string" ? provider.toLowerCase() : "";
-  if (text.includes("spacex")) {
-    return "#38bdf8";
-  }
-  if (text.includes("rocket lab")) {
-    return "#f97316";
-  }
-  if (text.includes("ula") || text.includes("united launch alliance")) {
-    return "#facc15";
-  }
-  return "#a78bfa";
-}
 
 function formatLaunchPopup(feature: GeoJSON.Feature): string {
   const props = feature.properties as Record<string, unknown>;
@@ -58,26 +45,25 @@ export function ensureRocketLaunchesLayer(map: Map): void {
   if (!map.getLayer(ROCKET_LAUNCHES_LAYER_ID)) {
     map.addLayer({
       id: ROCKET_LAUNCHES_LAYER_ID,
-      type: "circle",
+      type: "symbol",
       source: ROCKET_LAUNCHES_SOURCE_ID,
-      paint: {
-        "circle-color": [
+      layout: {
+        "icon-image": [
           "match",
           ["coalesce", ["get", "provider"], ""],
           "SpaceX",
-          providerColor("spacex"),
+          ICONS.rocketSpacex,
           "Rocket Lab",
-          providerColor("rocket lab"),
+          ICONS.rocketLab,
           "United Launch Alliance",
-          providerColor("ula"),
+          ICONS.rocketUla,
           "ULA",
-          providerColor("ula"),
-          providerColor("other"),
+          ICONS.rocketUla,
+          ICONS.rocketDefault,
         ],
-        "circle-radius": ["interpolate", ["linear"], ["zoom"], 1, 3.2, 4, 4.8, 7, 6.5],
-        "circle-opacity": 0.9,
-        "circle-stroke-color": "#111827",
-        "circle-stroke-width": 1.1,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 1.02, 4, 0.82, 7, 0.64],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
       },
     });
   }

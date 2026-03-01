@@ -1,5 +1,6 @@
 import maplibregl, { type Map, type MapLayerMouseEvent, type Popup } from "maplibre-gl";
 import type { CountryProfileApiResponse } from "@/lib/countryProfiles";
+import { ICONS } from "@/layers/icons";
 
 export const MAJOR_CITIES_SOURCE_ID = "major-cities-source";
 export const MAJOR_CITIES_LAYER_ID = "major-cities-layer";
@@ -62,7 +63,7 @@ export function ensureMajorCitiesLayer(map: Map): void {
   if (!map.getLayer(MAJOR_CITIES_LAYER_ID)) {
     map.addLayer({
       id: MAJOR_CITIES_LAYER_ID,
-      type: "circle",
+      type: "symbol",
       source: MAJOR_CITIES_SOURCE_ID,
       filter: [
         "any",
@@ -70,12 +71,11 @@ export function ensureMajorCitiesLayer(map: Map): void {
         ["<=", ["coalesce", ["get", "scalerank"], 10], 2],
         [">=", ["coalesce", ["get", "pop_max"], 0], 3000000],
       ],
-      paint: {
-        "circle-color": "#f8fafc",
-        "circle-opacity": 0.88,
-        "circle-stroke-color": "#020617",
-        "circle-stroke-width": 0.8,
-        "circle-radius": ["interpolate", ["linear"], ["zoom"], 1, 1.8, 4, 3.4, 7, 5],
+      layout: {
+        "icon-image": ICONS.city,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 1, 4, 0.8, 7, 0.62],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
       },
     });
   }

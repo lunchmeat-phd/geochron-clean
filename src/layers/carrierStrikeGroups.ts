@@ -1,5 +1,6 @@
 import maplibregl, { type GeoJSONSource, type Map, type MapLayerMouseEvent, type Popup } from "maplibre-gl";
 import type { CarrierStrikeGroupApiResponse, CarrierStrikeGroupCollection } from "@/lib/csg";
+import { ICONS } from "@/layers/icons";
 
 export const CSG_SOURCE_ID = "carrier-strike-groups-source";
 export const CSG_AREA_LAYER_ID = "carrier-strike-groups-area-layer";
@@ -113,23 +114,22 @@ export function ensureCarrierStrikeGroupsLayer(map: Map): void {
   if (!map.getLayer(CSG_POINT_LAYER_ID)) {
     map.addLayer({
       id: CSG_POINT_LAYER_ID,
-      type: "circle",
+      type: "symbol",
       source: CSG_SOURCE_ID,
       filter: ["all", ["==", ["geometry-type"], "Point"], ["==", ["get", "featureKind"], "lastKnown"]],
-      paint: {
-        "circle-color": [
+      layout: {
+        "icon-image": [
           "match",
           ["coalesce", ["get", "confidence"], "Low"],
           "High",
-          confidenceColor("High"),
+          ICONS.csgHigh,
           "Medium",
-          confidenceColor("Medium"),
-          confidenceColor("Low"),
+          ICONS.csgMedium,
+          ICONS.csgLow,
         ],
-        "circle-radius": ["interpolate", ["linear"], ["zoom"], 1, 3.6, 4, 5.4, 7, 8.2],
-        "circle-opacity": 0.95,
-        "circle-stroke-color": "#0f172a",
-        "circle-stroke-width": 1,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 1.08, 4, 0.86, 7, 0.68],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
       },
     });
   }
