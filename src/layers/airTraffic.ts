@@ -94,21 +94,38 @@ export function ensureAirTrafficLayer(map: Map): void {
 }
 
 export function setAirTrafficVisibility(map: Map, visible: boolean): void {
+  if (!map || typeof (map as unknown as { getLayer?: unknown }).getLayer !== "function") {
+    return;
+  }
   setCivilianAirTrafficVisibility(map, visible);
   setMilitaryAirTrafficVisibility(map, visible);
 }
 
 export function setCivilianAirTrafficVisibility(map: Map, visible: boolean): void {
-  const visibility = visible ? "visible" : "none";
-  if (map.getLayer(AIR_TRAFFIC_LAYER_ID)) {
-    map.setLayoutProperty(AIR_TRAFFIC_LAYER_ID, "visibility", visibility);
+  if (!map || typeof (map as unknown as { getLayer?: unknown }).getLayer !== "function") {
+    return;
+  }
+  try {
+    const visibility = visible ? "visible" : "none";
+    if (map.getLayer(AIR_TRAFFIC_LAYER_ID)) {
+      map.setLayoutProperty(AIR_TRAFFIC_LAYER_ID, "visibility", visibility);
+    }
+  } catch {
+    // Ignore layer visibility changes during map/style teardown.
   }
 }
 
 export function setMilitaryAirTrafficVisibility(map: Map, visible: boolean): void {
-  const visibility = visible ? "visible" : "none";
-  if (map.getLayer(AIR_TRAFFIC_MIL_LAYER_ID)) {
-    map.setLayoutProperty(AIR_TRAFFIC_MIL_LAYER_ID, "visibility", visibility);
+  if (!map || typeof (map as unknown as { getLayer?: unknown }).getLayer !== "function") {
+    return;
+  }
+  try {
+    const visibility = visible ? "visible" : "none";
+    if (map.getLayer(AIR_TRAFFIC_MIL_LAYER_ID)) {
+      map.setLayoutProperty(AIR_TRAFFIC_MIL_LAYER_ID, "visibility", visibility);
+    }
+  } catch {
+    // Ignore layer visibility changes during map/style teardown.
   }
 }
 

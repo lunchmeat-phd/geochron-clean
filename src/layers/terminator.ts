@@ -19,7 +19,7 @@ export function ensureTerminatorLayer(map: Map): void {
       source: TERMINATOR_SOURCE_ID,
       paint: {
         "fill-color": "#0f172a",
-        "fill-opacity": 0.35,
+        "fill-opacity": 0.42,
       },
     });
   }

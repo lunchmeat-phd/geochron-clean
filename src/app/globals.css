@@ -22,6 +22,7 @@ body,
   height: 100vh;
   overflow: hidden;
   transition: filter 120ms linear;
+  background: #000;
 }
 
 .map-container {
@@ -29,6 +30,25 @@ body,
   inset: 0;
   z-index: 1;
   transition: filter 180ms ease;
+}
+
+.globe-starfield {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.8) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 30% 60%, rgba(255, 255, 255, 0.65) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.75) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 85% 72%, rgba(255, 255, 255, 0.6) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 55% 85%, rgba(255, 255, 255, 0.7) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 18% 82%, rgba(255, 255, 255, 0.55) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 40% 15%, rgba(255, 255, 255, 0.45) 0 0.8px, transparent 1.3px),
+    radial-gradient(circle at 62% 48%, rgba(255, 255, 255, 0.4) 0 0.8px, transparent 1.3px),
+    radial-gradient(circle at 92% 18%, rgba(255, 255, 255, 0.35) 0 0.8px, transparent 1.3px),
+    radial-gradient(circle at 8% 52%, rgba(255, 255, 255, 0.45) 0 0.8px, transparent 1.3px),
+    linear-gradient(to bottom, #02060f 0%, #000000 60%, #02050b 100%);
 }
 
 .stealth-veil {
@@ -532,6 +552,15 @@ body,
   min-width: 40px;
   font-size: 12px;
   text-align: right;
+}
+
+.view-mode-row {
+  margin-top: 8px;
+}
+
+.view-mode-row label {
+  display: block;
+  margin-bottom: 4px;
 }
 
 .panel-color-preset {

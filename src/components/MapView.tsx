@@ -151,9 +151,10 @@ const ISS_LIVE_FEED_URL =
   "https://www.youtube-nocookie.com/embed/live_stream?channel=UCLA_DiR1FfKNvjuUpBHmylQ&autoplay=1&mute=1&controls=1&rel=0";
 const ISS_LIVE_FALLBACK_URL = "https://www.youtube.com/watch?v=21X5lGlDOfg";
 
-function createBaseStyle(): maplibregl.StyleSpecification {
+function createBaseStyle(viewMode: "map" | "globe"): maplibregl.StyleSpecification {
   return {
     version: 8,
+    ...(viewMode === "globe" ? ({ projection: { type: "globe" } } as Record<string, unknown>) : {}),
     sources: {
       satellite: {
         type: "raster",
@@ -205,6 +206,7 @@ export function MapView() {
   const [theme, setTheme] = useState<VisualTheme>("classic");
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [stockTickerEnabled, setStockTickerEnabled] = useState(true);
+  const [viewMode, setViewMode] = useState<"map" | "globe">("map");
   const [stockQuotes, setStockQuotes] = useState<StockQuote[]>([]);
   const [stockError, setStockError] = useState<string | null>(null);
   const [quakeStale, setQuakeStale] = useState(false);
@@ -212,7 +214,7 @@ export function MapView() {
   const [earthquakeData, setEarthquakeDataState] = useState<UsgsEarthquakeCollection | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
-  const style = useMemo(() => createBaseStyle(), []);
+  const style = useMemo(() => createBaseStyle(viewMode), [viewMode]);
 
   useEffect(() => {
     setUtcNow(new Date().toISOString());
@@ -233,8 +235,12 @@ export function MapView() {
       style,
       center: [0, 12],
       zoom: 1.5,
-      minZoom: 1,
+      minZoom: 0.6,
       maxZoom: 8,
+      maxPitch: 80,
+      pitchWithRotate: true,
+      dragRotate: true,
+      touchPitch: true,
     });
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "top-right");
@@ -245,6 +251,19 @@ export function MapView() {
 
     map.on("load", () => {
       setMapReady(true);
+      if (viewMode === "globe") {
+        try {
+          map.easeTo({ center: [0, 8], pitch: 0, bearing: 0, zoom: 0.9, duration: 900 });
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Failed to initialize globe view");
+        }
+      } else {
+        try {
+          map.easeTo({ center: [0, 12], pitch: 0, bearing: 0, zoom: 1.5, duration: 500 });
+        } catch {
+          // no-op
+        }
+      }
       const safeRun = (fn: () => void) => {
         try {
           fn();
@@ -321,7 +340,7 @@ export function MapView() {
       map.remove();
       mapRef.current = null;
     };
-  }, [style]);
+  }, [style, viewMode]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -869,8 +888,6 @@ export function MapView() {
       if (cleanupHover) {
         cleanupHover();
       }
-      setCivilianAirTrafficVisibility(map, false);
-      setMilitaryAirTrafficVisibility(map, false);
       setAirTrafficCount(0);
       setAirTrafficMilitaryCount(0);
     };
@@ -1302,6 +1319,7 @@ export function MapView() {
 
   return (
     <main className={`map-shell map-theme-${theme}${isStealthTheme ? " stealth-mode" : ""}`} style={{ filter: `brightness(${brightnessPercent}%)` }}>
+      {viewMode === "globe" ? <div className="globe-starfield" aria-hidden="true" /> : null}
       <div
         ref={containerRef}
         className="map-container"
@@ -1323,6 +1341,8 @@ export function MapView() {
         onBrightnessChange={handleBrightnessChange}
         stockTickerEnabled={stockTickerEnabled}
         onStockTickerEnabledChange={setStockTickerEnabled}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
         utcNow={utcNow}
         refreshTimes={refreshTimes}
         cityCount={cityCount}

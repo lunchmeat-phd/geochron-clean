@@ -17,6 +17,8 @@ type StatusPanelProps = {
   onBrightnessChange: (next: number) => void;
   stockTickerEnabled: boolean;
   onStockTickerEnabledChange: (next: boolean) => void;
+  viewMode: "map" | "globe";
+  onViewModeChange: (next: "map" | "globe") => void;
   utcNow: string;
   refreshTimes: RefreshTimes;
   quakeCount: number;
@@ -134,6 +136,8 @@ export function StatusPanel({
   onBrightnessChange,
   stockTickerEnabled,
   onStockTickerEnabledChange,
+  viewMode,
+  onViewModeChange,
   utcNow,
   refreshTimes,
   quakeCount,
@@ -388,6 +392,18 @@ export function StatusPanel({
           />
           Stock Ticker
         </label>
+        <div className="view-mode-row">
+          <label htmlFor="view-mode-select">View</label>
+          <select
+            id="view-mode-select"
+            className="theme-select"
+            value={viewMode}
+            onChange={(event) => onViewModeChange(event.target.value as "map" | "globe")}
+          >
+            <option value="map">Flat Map (2D)</option>
+            <option value="globe">Interactive Globe (3D)</option>
+          </select>
+        </div>
       </section>
 
       <section>
