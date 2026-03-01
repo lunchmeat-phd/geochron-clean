@@ -4,6 +4,16 @@ import { ICONS } from "@/layers/icons";
 
 export const EARTHQUAKE_SOURCE_ID = "earthquakes-source";
 export const EARTHQUAKE_LAYER_ID = "earthquakes-layer";
+export const EARTHQUAKE_FALLBACK_LAYER_ID = "earthquakes-fallback-layer";
+
+function bringEarthquakesToFront(map: Map): void {
+  if (map.getLayer(EARTHQUAKE_FALLBACK_LAYER_ID)) {
+    map.moveLayer(EARTHQUAKE_FALLBACK_LAYER_ID);
+  }
+  if (map.getLayer(EARTHQUAKE_LAYER_ID)) {
+    map.moveLayer(EARTHQUAKE_LAYER_ID);
+  }
+}
 
 function formatEarthquakePopup(feature: GeoJSON.Feature): string {
   const props = feature.properties as Record<string, unknown>;
@@ -43,19 +53,56 @@ export function ensureEarthquakeLayer(map: Map): void {
         "icon-image": ICONS.earthquake,
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
+        "icon-padding": 0,
         "icon-size": [
           "*",
-          ["interpolate", ["linear"], ["zoom"], 1, 1.2, 4, 0.95, 7, 0.72],
-          ["interpolate", ["linear"], ["coalesce", ["get", "mag"], 0], 0, 0.45, 2, 0.65, 4, 0.95, 7, 1.25],
+          ["interpolate", ["linear"], ["zoom"], 1, 1.28, 4, 1.1, 7, 0.92],
+          ["interpolate", ["linear"], ["coalesce", ["get", "mag"], 0], 0, 0.9, 2, 1.12, 4, 1.4, 7, 1.82],
         ],
       },
     });
   }
+
+  if (!map.getLayer(EARTHQUAKE_FALLBACK_LAYER_ID)) {
+    map.addLayer({
+      id: EARTHQUAKE_FALLBACK_LAYER_ID,
+      type: "circle",
+      source: EARTHQUAKE_SOURCE_ID,
+      paint: {
+        "circle-color": "#fb923c",
+        "circle-opacity": 0.5,
+        "circle-stroke-color": "#7c2d12",
+        "circle-stroke-width": 0.8,
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["coalesce", ["get", "mag"], 0],
+          0,
+          1.8,
+          2,
+          2.8,
+          4,
+          4.2,
+          7,
+          6,
+        ],
+      },
+    });
+  }
+
+  bringEarthquakesToFront(map);
 }
 
 export function setEarthquakesVisibility(map: Map, visible: boolean): void {
+  if (visible) {
+    bringEarthquakesToFront(map);
+  }
+
   if (map.getLayer(EARTHQUAKE_LAYER_ID)) {
     map.setLayoutProperty(EARTHQUAKE_LAYER_ID, "visibility", visible ? "visible" : "none");
+  }
+  if (map.getLayer(EARTHQUAKE_FALLBACK_LAYER_ID)) {
+    map.setLayoutProperty(EARTHQUAKE_FALLBACK_LAYER_ID, "visibility", visible ? "visible" : "none");
   }
 }
 
@@ -96,10 +143,14 @@ export function attachEarthquakeHoverTooltip(map: Map): () => void {
 
   map.on("mousemove", EARTHQUAKE_LAYER_ID, onMove);
   map.on("mouseleave", EARTHQUAKE_LAYER_ID, onLeave);
+  map.on("mousemove", EARTHQUAKE_FALLBACK_LAYER_ID, onMove);
+  map.on("mouseleave", EARTHQUAKE_FALLBACK_LAYER_ID, onLeave);
 
   return () => {
     map.off("mousemove", EARTHQUAKE_LAYER_ID, onMove);
     map.off("mouseleave", EARTHQUAKE_LAYER_ID, onLeave);
+    map.off("mousemove", EARTHQUAKE_FALLBACK_LAYER_ID, onMove);
+    map.off("mouseleave", EARTHQUAKE_FALLBACK_LAYER_ID, onLeave);
     if (popup) {
       popup.remove();
       popup = null;
