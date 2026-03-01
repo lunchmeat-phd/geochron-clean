@@ -6,12 +6,17 @@ import { ICONS } from "@/layers/icons";
 export const SUN_ANALEMMA_SOURCE_ID = "sun-analemma-source";
 export const SUN_ANALEMMA_LINE_LAYER_ID = "sun-analemma-line-layer";
 export const SUN_POSITION_LAYER_ID = "sun-position-layer";
+const ATLANTIC_CENTER_LON = -30;
 
 function normalizeLon(lon: number): number {
   return ((lon + 540) % 360) - 180;
 }
 
-function buildAnalemmaSegments(now: Date): number[][][] {
+function shiftLonToPacific(lon: number, offset: number): number {
+  return normalizeLon(lon + offset);
+}
+
+function buildAnalemmaSegments(now: Date, lonOffset: number): number[][][] {
   const year = now.getUTCFullYear();
   const h = now.getUTCHours();
   const m = now.getUTCMinutes();
@@ -24,7 +29,7 @@ function buildAnalemmaSegments(now: Date): number[][][] {
       break;
     }
     const sun = getSunPosition(date);
-    points.push([normalizeLon(sun.longitude), sun.latitude]);
+    points.push([shiftLonToPacific(sun.longitude, lonOffset), sun.latitude]);
   }
 
   const segments: number[][][] = [];
@@ -56,8 +61,10 @@ function buildAnalemmaSegments(now: Date): number[][][] {
 }
 
 function createSunAnalemmaCollection(now = new Date()): FeatureCollection<LineString | Point> {
-  const segments = buildAnalemmaSegments(now);
   const sun = getSunPosition(now);
+  // Re-center analemma each update so the current sun marker stays over the Pacific.
+  const lonOffset = ATLANTIC_CENTER_LON - sun.longitude;
+  const segments = buildAnalemmaSegments(now, lonOffset);
 
   const lineFeatures = segments.map((coordinates, idx) => ({
     type: "Feature" as const,
@@ -79,7 +86,7 @@ function createSunAnalemmaCollection(now = new Date()): FeatureCollection<LineSt
     },
     geometry: {
       type: "Point" as const,
-      coordinates: [normalizeLon(sun.longitude), sun.latitude],
+      coordinates: [shiftLonToPacific(sun.longitude, lonOffset), sun.latitude],
     },
   };
 
