@@ -67,7 +67,7 @@ export function ensureCountryProfilesLayer(map: Map): void {
       source: COUNTRY_PROFILES_SOURCE_ID,
       layout: {
         "icon-image": ICONS.countryProfile,
-        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 0.92, 4, 0.74, 7, 0.58],
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 0.16, 4, 0.22, 7, 0.28],
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
       },

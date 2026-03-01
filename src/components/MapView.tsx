@@ -136,6 +136,8 @@ export function MapView() {
   const [csgAverageConfidence, setCsgAverageConfidence] = useState(0);
   const [panelColor, setPanelColor] = useState("#ffffff");
   const [brightnessPercent, setBrightnessPercent] = useState(100);
+  const [stealthMode, setStealthMode] = useState(false);
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [quakeStale, setQuakeStale] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [earthquakeData, setEarthquakeDataState] = useState<UsgsEarthquakeCollection | null>(null);
@@ -956,36 +958,61 @@ export function MapView() {
     setBrightnessPercent(clamped);
   };
 
+  const handleStealthModeChange = (next: boolean) => {
+    setStealthMode(next);
+  };
+
   return (
-    <main className="map-shell" style={{ filter: `brightness(${brightnessPercent}%)` }}>
-      <div ref={containerRef} className="map-container" />
-      <StatusPanel
-        toggles={toggles}
-        onToggle={handleToggle}
-        onSetAllLayers={handleSetAllLayers}
-        panelColor={panelColor}
-        onPanelColorChange={handlePanelColorChange}
-        brightnessPercent={brightnessPercent}
-        onBrightnessChange={handleBrightnessChange}
-        utcNow={utcNow}
-        refreshTimes={refreshTimes}
-        cityCount={cityCount}
-        countryCount={countryCount}
-        quakeCount={quakeCount}
-        pipelineCount={pipelineCount}
-        fiberCableCount={fiberCableCount}
-        militaryAmericanCount={militaryAmericanCount}
-        militaryNonAmericanCount={militaryNonAmericanCount}
-        airTrafficCount={airTrafficCount}
-        airTrafficMilitaryCount={airTrafficMilitaryCount}
-        rocketLaunchCount={rocketLaunchCount}
-        carrierStrikeGroupCount={carrierStrikeGroupCount}
-        csgActiveSources={csgActiveSources}
-        csgTotalSources={csgTotalSources}
-        csgAverageConfidence={csgAverageConfidence}
-        quakeStale={quakeStale}
-        error={error}
+    <main className={`map-shell${stealthMode ? " stealth-mode" : ""}`} style={{ filter: `brightness(${brightnessPercent}%)` }}>
+      <div
+        ref={containerRef}
+        className="map-container"
+        style={
+          stealthMode
+            ? {
+                filter: "grayscale(1) saturate(0) contrast(1.55) brightness(0.24)",
+              }
+            : undefined
+        }
       />
+      {stealthMode ? <div className="stealth-veil" aria-hidden="true" /> : null}
+      {panelCollapsed ? (
+        <button type="button" className="panel-open-btn" onClick={() => setPanelCollapsed(false)}>
+          Open Panel
+        </button>
+      ) : (
+        <StatusPanel
+          collapsed={panelCollapsed}
+          onCollapsedChange={setPanelCollapsed}
+          toggles={toggles}
+          onToggle={handleToggle}
+          onSetAllLayers={handleSetAllLayers}
+          stealthMode={stealthMode}
+          onStealthModeChange={handleStealthModeChange}
+          panelColor={panelColor}
+          onPanelColorChange={handlePanelColorChange}
+          brightnessPercent={brightnessPercent}
+          onBrightnessChange={handleBrightnessChange}
+          utcNow={utcNow}
+          refreshTimes={refreshTimes}
+          cityCount={cityCount}
+          countryCount={countryCount}
+          quakeCount={quakeCount}
+          pipelineCount={pipelineCount}
+          fiberCableCount={fiberCableCount}
+          militaryAmericanCount={militaryAmericanCount}
+          militaryNonAmericanCount={militaryNonAmericanCount}
+          airTrafficCount={airTrafficCount}
+          airTrafficMilitaryCount={airTrafficMilitaryCount}
+          rocketLaunchCount={rocketLaunchCount}
+          carrierStrikeGroupCount={carrierStrikeGroupCount}
+          csgActiveSources={csgActiveSources}
+          csgTotalSources={csgTotalSources}
+          csgAverageConfidence={csgAverageConfidence}
+          quakeStale={quakeStale}
+          error={error}
+        />
+      )}
       {toggles.issTracker ? (
         <aside className="iss-feed-panel" aria-label="Live ISS Camera Feed">
           <div className="iss-feed-title">

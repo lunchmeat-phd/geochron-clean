@@ -3,9 +3,13 @@
 import type { LayerToggleState, RefreshTimes } from "@/layers";
 
 type StatusPanelProps = {
+  collapsed: boolean;
+  onCollapsedChange: (next: boolean) => void;
   toggles: LayerToggleState;
   onToggle: (key: keyof LayerToggleState, next: boolean) => void;
   onSetAllLayers: (next: boolean) => void;
+  stealthMode: boolean;
+  onStealthModeChange: (next: boolean) => void;
   panelColor: string;
   onPanelColorChange: (next: string) => void;
   brightnessPercent: number;
@@ -51,9 +55,13 @@ function textColorForHex(hex: string): string {
 }
 
 export function StatusPanel({
+  collapsed,
+  onCollapsedChange,
   toggles,
   onToggle,
   onSetAllLayers,
+  stealthMode,
+  onStealthModeChange,
   panelColor,
   onPanelColorChange,
   brightnessPercent,
@@ -81,14 +89,34 @@ export function StatusPanel({
   const panelTextColor = textColorForHex(panelColor);
 
   return (
-    <aside className="status-panel" style={{ backgroundColor: panelColor, color: panelTextColor }}>
+    <aside
+      className={`status-panel${stealthMode ? " status-panel-stealth" : ""}`}
+      style={{
+        backgroundColor: stealthMode ? "rgba(2, 8, 20, 0.9)" : panelColor,
+        color: stealthMode ? "#d1fae5" : panelTextColor,
+      }}
+    >
       <h1>GeoChron MVP</h1>
+      <div className="panel-top-row">
+        <button type="button" className="panel-collapse-btn" onClick={() => onCollapsedChange(!collapsed)}>
+          Hide Panel
+        </button>
+      </div>
 
       <section>
         <h2>Quick</h2>
         <div className="quick-toggle-row">
           <button type="button" onClick={() => onSetAllLayers(true)}>All On</button>
           <button type="button" onClick={() => onSetAllLayers(false)}>All Off</button>
+        </div>
+        <div className="quick-toggle-row">
+          <button
+            type="button"
+            className={stealthMode ? "quick-toggle-active" : ""}
+            onClick={() => onStealthModeChange(!stealthMode)}
+          >
+            {stealthMode ? "Stealth On" : "Stealth Off"}
+          </button>
         </div>
         <div className="panel-color-row">
           <label htmlFor="panel-color-picker">Overlay color</label>

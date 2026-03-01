@@ -27,6 +27,26 @@ body,
 .map-container {
   position: absolute;
   inset: 0;
+  z-index: 1;
+  transition: filter 180ms ease;
+}
+
+.stealth-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(20, 20, 20, 0.1) 0%, rgba(0, 0, 0, 0.78) 75%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.22) 0px,
+      rgba(0, 0, 0, 0.22) 1px,
+      rgba(0, 0, 0, 0) 2px,
+      rgba(0, 0, 0, 0) 4px
+    );
+  mix-blend-mode: multiply;
+  opacity: 0.95;
 }
 
 .status-panel {
@@ -46,9 +66,86 @@ body,
   color: #0f172a;
 }
 
+.status-panel-stealth {
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+}
+
+.status-panel-stealth h1,
+.status-panel-stealth h2,
+.status-panel-stealth p,
+.status-panel-stealth label {
+  color: #d1fae5;
+}
+
+.status-panel-stealth .quick-toggle-row button {
+  background: rgba(15, 23, 42, 0.9);
+  color: #d1fae5;
+  border-color: rgba(56, 189, 248, 0.55);
+}
+
+.status-panel-stealth .quick-toggle-row .quick-toggle-active {
+  background: rgba(6, 182, 212, 0.22);
+  color: #ccfbf1;
+  border-color: rgba(34, 211, 238, 0.8);
+}
+
+.status-panel-stealth .panel-color-preset {
+  border-color: rgba(148, 163, 184, 0.8);
+}
+
+.status-panel-stealth .panel-color-row input[type="color"] {
+  border-color: rgba(56, 189, 248, 0.55);
+}
+
+.status-panel-stealth .brightness-control input[type="range"] {
+  accent-color: #22d3ee;
+}
+
+.status-panel-stealth .legend-us {
+  box-shadow: 0 0 5px rgba(251, 113, 133, 0.6);
+}
+
+.status-panel-stealth .legend-non-us {
+  box-shadow: 0 0 5px rgba(56, 189, 248, 0.7);
+}
+
+.status-panel-stealth .panel-collapse-btn,
+.status-panel-stealth .panel-open-btn {
+  background: rgba(15, 23, 42, 0.9);
+  color: #d1fae5;
+  border-color: rgba(56, 189, 248, 0.55);
+}
+
 .status-panel h1 {
   margin: 0 0 8px;
   font-size: 18px;
+}
+
+.panel-top-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
+
+.panel-collapse-btn,
+.panel-open-btn {
+  border: 1px solid rgba(15, 23, 42, 0.35);
+  background: rgba(248, 250, 252, 0.92);
+  color: #0f172a;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.panel-open-btn {
+  position: absolute;
+  z-index: 6;
+  left: 16px;
+  top: 16px;
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.2);
 }
 
 .status-panel h2 {
@@ -87,6 +184,12 @@ body,
   padding: 4px 8px;
   font-size: 12px;
   cursor: pointer;
+}
+
+.quick-toggle-row .quick-toggle-active {
+  background: #111827;
+  color: #f8fafc;
+  border-color: #0f172a;
 }
 
 .panel-color-row {

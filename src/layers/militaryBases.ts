@@ -44,7 +44,7 @@ export function ensureMilitaryBasesLayer(map: Map): void {
       filter: ["==", ["coalesce", ["get", "american"], false], false],
       layout: {
         "icon-image": ICONS.militaryBaseNonUs,
-        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 1.02, 4, 0.82, 7, 0.64],
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 0.18, 4, 0.25, 7, 0.31],
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
       },
@@ -59,7 +59,7 @@ export function ensureMilitaryBasesLayer(map: Map): void {
       filter: ["==", ["coalesce", ["get", "american"], false], true],
       layout: {
         "icon-image": ICONS.militaryBaseUs,
-        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 1.08, 4, 0.86, 7, 0.68],
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 0.19, 4, 0.26, 7, 0.32],
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
       },
