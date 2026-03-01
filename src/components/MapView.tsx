@@ -8,6 +8,8 @@ import {
   attachCountryProfilesHoverTooltip,
   attachMajorCityHoverTooltip,
   attachMilitaryBasesHoverTooltip,
+  attachRocketLaunchesHoverTooltip,
+  attachShipsHoverTooltip,
   ensureAirQualityLayer,
   ensureAirTrafficLayer,
   ensureBoundaryLayers,
@@ -18,6 +20,8 @@ import {
   ensureMajorCitiesLayer,
   ensureMilitaryBasesLayer,
   ensureOilPipelinesLayer,
+  ensureRocketLaunchesLayer,
+  ensureShipsLayer,
   ensureSunAnalemmaLayer,
   ensureTerminatorLayer,
   ensureWeatherRadarLayer,
@@ -26,8 +30,10 @@ import {
   fetchAirTraffic,
   fetchIssTracker,
   fetchMilitaryBases,
+  fetchRocketLaunches,
   fetchEarthquakes,
   fetchOilPipelines,
+  fetchShips,
   setFiberCablesVisibility,
   setCivilianAirTrafficVisibility,
   setCountryProfilesVisibility,
@@ -36,6 +42,8 @@ import {
   setMilitaryAirTrafficVisibility,
   setMilitaryBasesVisibility,
   setOilPipelinesVisibility,
+  setRocketLaunchesVisibility,
+  setShipsVisibility,
   setSunAnalemmaVisibility,
   setEarthquakeData,
   setAirQualityVisibility,
@@ -48,6 +56,8 @@ import {
   updateIssTrackerData,
   updateMilitaryBasesData,
   updateOilPipelinesData,
+  updateRocketLaunchesData,
+  updateShipsData,
   updateSunAnalemma,
   updateWeatherRadarLayer,
   updateTerminator,
@@ -70,6 +80,7 @@ const DEFAULT_TOGGLES: LayerToggleState = {
   fiberCables: true,
   militaryBases: false,
   issTracker: false,
+  rocketLaunches: false,
   airTrafficCivilian: false,
   airTrafficMilitary: true,
   ships: false,
@@ -113,6 +124,9 @@ export function MapView() {
   const [militaryNonAmericanCount, setMilitaryNonAmericanCount] = useState(0);
   const [airTrafficCount, setAirTrafficCount] = useState(0);
   const [airTrafficMilitaryCount, setAirTrafficMilitaryCount] = useState(0);
+  const [shipsCount, setShipsCount] = useState(0);
+  const [rocketLaunchCount, setRocketLaunchCount] = useState(0);
+  const [panelColor, setPanelColor] = useState("#ffffff");
   const [quakeStale, setQuakeStale] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [earthquakeData, setEarthquakeDataState] = useState<UsgsEarthquakeCollection | null>(null);
@@ -168,6 +182,8 @@ export function MapView() {
       safeRun(() => ensureFiberCablesLayer(map));
       safeRun(() => ensureMilitaryBasesLayer(map));
       safeRun(() => ensureAirTrafficLayer(map));
+      safeRun(() => ensureShipsLayer(map));
+      safeRun(() => ensureRocketLaunchesLayer(map));
       safeRun(() => ensureBoundaryLayers(map));
       safeRun(() => ensureMajorCitiesLayer(map));
       safeRun(() => ensureCountryProfilesLayer(map));
@@ -184,6 +200,8 @@ export function MapView() {
       safeRun(() => setMilitaryBasesVisibility(map, DEFAULT_TOGGLES.militaryBases));
       safeRun(() => setCivilianAirTrafficVisibility(map, DEFAULT_TOGGLES.airTrafficCivilian));
       safeRun(() => setMilitaryAirTrafficVisibility(map, DEFAULT_TOGGLES.airTrafficMilitary));
+      safeRun(() => setShipsVisibility(map, DEFAULT_TOGGLES.ships));
+      safeRun(() => setRocketLaunchesVisibility(map, DEFAULT_TOGGLES.rocketLaunches));
 
       const terminateAt = updateTerminator(map);
       const sunAt = updateSunAnalemma(map);
@@ -227,6 +245,8 @@ export function MapView() {
     setCivilianAirTrafficVisibility(map, toggles.airTrafficCivilian);
     setMilitaryAirTrafficVisibility(map, toggles.airTrafficMilitary);
     setIssTrackerVisibility(map, toggles.issTracker);
+    setShipsVisibility(map, toggles.ships);
+    setRocketLaunchesVisibility(map, toggles.rocketLaunches);
   }, [
     toggles.earthquakes,
     toggles.terminator,
@@ -241,6 +261,8 @@ export function MapView() {
     toggles.airTrafficCivilian,
     toggles.airTrafficMilitary,
     toggles.issTracker,
+    toggles.ships,
+    toggles.rocketLaunches,
   ]);
 
   useEffect(() => {
@@ -712,6 +734,129 @@ export function MapView() {
 
   useEffect(() => {
     const map = mapRef.current;
+    if (!map || !mapReady || !toggles.ships) {
+      return;
+    }
+
+    let active = true;
+    let delayTimer: number | null = null;
+    let cleanupHover: (() => void) | null = null;
+
+    try {
+      ensureShipsLayer(map);
+      setShipsVisibility(map, true);
+      cleanupHover = attachShipsHoverTooltip(map);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to initialize ships layer");
+      return;
+    }
+
+    const refreshShips = async () => {
+      try {
+        const payload = await fetchShips(map);
+        if (!active) {
+          return;
+        }
+
+        updateShipsData(map, payload.data);
+        setShipsCount(payload.data.features.length);
+        setRefreshTimes((prev) => ({ ...prev, ships: payload.fetchedAt }));
+        if (payload.error) {
+          setError(payload.error);
+        }
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Failed to fetch ship data");
+      }
+    };
+
+    const scheduleRefresh = () => {
+      if (delayTimer) {
+        window.clearTimeout(delayTimer);
+      }
+      delayTimer = window.setTimeout(() => {
+        void refreshShips();
+      }, 350);
+    };
+
+    void refreshShips();
+    map.on("moveend", scheduleRefresh);
+    map.on("zoomend", scheduleRefresh);
+    const interval = window.setInterval(refreshShips, 60_000);
+
+    return () => {
+      active = false;
+      if (delayTimer) {
+        window.clearTimeout(delayTimer);
+      }
+      map.off("moveend", scheduleRefresh);
+      map.off("zoomend", scheduleRefresh);
+      window.clearInterval(interval);
+      if (cleanupHover) {
+        cleanupHover();
+      }
+      setShipsVisibility(map, false);
+      setShipsCount(0);
+    };
+  }, [mapReady, toggles.ships]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !toggles.rocketLaunches) {
+      return;
+    }
+
+    let active = true;
+    let cleanupHover: (() => void) | null = null;
+
+    try {
+      ensureRocketLaunchesLayer(map);
+      setRocketLaunchesVisibility(map, true);
+      cleanupHover = attachRocketLaunchesHoverTooltip(map);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to initialize rocket-launch layer");
+      return;
+    }
+
+    const refreshRocketLaunches = async () => {
+      try {
+        const payload = await fetchRocketLaunches();
+        if (!active) {
+          return;
+        }
+
+        updateRocketLaunchesData(map, payload.data);
+        setRocketLaunchCount(payload.data.features.length);
+        setRefreshTimes((prev) => ({ ...prev, rocketLaunches: payload.fetchedAt }));
+        if (payload.error) {
+          setError(payload.error);
+        }
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Failed to fetch rocket launches");
+      }
+    };
+
+    void refreshRocketLaunches();
+    const interval = window.setInterval(refreshRocketLaunches, 5 * 60_000);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      if (cleanupHover) {
+        cleanupHover();
+      }
+      setRocketLaunchesVisibility(map, false);
+      setRocketLaunchCount(0);
+    };
+  }, [mapReady, toggles.rocketLaunches]);
+
+  useEffect(() => {
+    const map = mapRef.current;
     if (!map || !mapReady || !toggles.issTracker) {
       return;
     }
@@ -791,9 +936,15 @@ export function MapView() {
       fiberCables: next,
       militaryBases: next,
       issTracker: next,
+      rocketLaunches: next,
       airTrafficCivilian: next,
       airTrafficMilitary: next,
+      ships: next,
     }));
+  };
+
+  const handlePanelColorChange = (next: string) => {
+    setPanelColor(next);
   };
 
   return (
@@ -803,6 +954,8 @@ export function MapView() {
         toggles={toggles}
         onToggle={handleToggle}
         onSetAllLayers={handleSetAllLayers}
+        panelColor={panelColor}
+        onPanelColorChange={handlePanelColorChange}
         utcNow={utcNow}
         refreshTimes={refreshTimes}
         cityCount={cityCount}
@@ -814,6 +967,8 @@ export function MapView() {
         militaryNonAmericanCount={militaryNonAmericanCount}
         airTrafficCount={airTrafficCount}
         airTrafficMilitaryCount={airTrafficMilitaryCount}
+        shipsCount={shipsCount}
+        rocketLaunchCount={rocketLaunchCount}
         quakeStale={quakeStale}
         error={error}
       />

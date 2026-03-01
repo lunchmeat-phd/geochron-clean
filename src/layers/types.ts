@@ -10,6 +10,7 @@ export type LayerKey =
   | "fiberCables"
   | "militaryBases"
   | "issTracker"
+  | "rocketLaunches"
   | "airTrafficCivilian"
   | "airTrafficMilitary"
   | "ships";
