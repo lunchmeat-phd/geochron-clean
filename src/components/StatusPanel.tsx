@@ -236,6 +236,18 @@ export function StatusPanel({
       onToggle(key, next);
     }
   };
+  const categoryIds = layerCategories.map((category) => category.id);
+  const allCategoriesCollapsed = categoryIds.every((id) => collapsedCategories[id]);
+
+  const setAllCategoryCollapse = (next: boolean) => {
+    setCollapsedCategories({
+      core: next,
+      natural: next,
+      aviation: next,
+      maritime: next,
+      defense: next,
+    });
+  };
 
   useEffect(() => {
     const clearIdleTimer = () => {
@@ -366,6 +378,11 @@ export function StatusPanel({
 
       <section>
         <h2>Layers</h2>
+        <div className="layer-category-global-actions">
+          <button type="button" onClick={() => setAllCategoryCollapse(true)}>Collapse All</button>
+          <button type="button" onClick={() => setAllCategoryCollapse(false)}>Expand All</button>
+          <span>{allCategoriesCollapsed ? "All collapsed" : "Mixed/expanded"}</span>
+        </div>
         {layerCategories.map((category) => {
           const categoryCollapsed = collapsedCategories[category.id];
           const keys = category.items.map((item) => item.key);

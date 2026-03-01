@@ -201,6 +201,16 @@ body,
   border-color: rgba(55, 65, 81, 0.35);
 }
 
+.status-panel-stealth .layer-category-global-actions button {
+  background: rgba(8, 10, 12, 0.92);
+  color: #6b7280;
+  border-color: rgba(55, 65, 81, 0.35);
+}
+
+.status-panel-stealth .layer-category-global-actions span {
+  color: #6b7280;
+}
+
 .status-panel p {
   margin: 4px 0;
   font-size: 12px;
@@ -259,6 +269,27 @@ body,
 
 .layer-category-body {
   margin-top: 4px;
+}
+
+.layer-category-global-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.layer-category-global-actions button {
+  border: 1px solid rgba(15, 23, 42, 0.25);
+  background: rgba(248, 250, 252, 0.9);
+  color: #0f172a;
+  border-radius: 6px;
+  padding: 3px 7px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.layer-category-global-actions span {
+  font-size: 11px;
+  color: rgba(15, 23, 42, 0.7);
 }
 
 .quick-toggle-row {
