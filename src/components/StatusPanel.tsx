@@ -19,7 +19,6 @@ type StatusPanelProps = {
   militaryNonAmericanCount: number;
   airTrafficCount: number;
   airTrafficMilitaryCount: number;
-  shipsCount: number;
   rocketLaunchCount: number;
   carrierStrikeGroupCount: number;
   csgActiveSources: number;
@@ -66,7 +65,6 @@ export function StatusPanel({
   militaryNonAmericanCount,
   airTrafficCount,
   airTrafficMilitaryCount,
-  shipsCount,
   rocketLaunchCount,
   carrierStrikeGroupCount,
   csgActiveSources,
@@ -237,14 +235,6 @@ export function StatusPanel({
           />
           Military Flights
         </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={toggles.ships}
-            onChange={(event) => onToggle("ships", event.target.checked)}
-          />
-          Baltic Boats
-        </label>
       </section>
 
       <section>
@@ -259,7 +249,6 @@ export function StatusPanel({
         <p>Non-US military bases: {militaryNonAmericanCount}</p>
         <p>Civilian flights: {airTrafficCount}</p>
         <p>Military flights: {airTrafficMilitaryCount}</p>
-        <p>Baltic boats: {shipsCount}</p>
         <p>Rocket launches (48h): {rocketLaunchCount}</p>
         <p>Carrier strike groups: {carrierStrikeGroupCount}</p>
         <p>CSG active sources: {csgActiveSources}/{csgTotalSources}</p>
@@ -274,7 +263,6 @@ export function StatusPanel({
         <p>Sun analemma refresh: {formatIso(refreshTimes.sunAnalemma)}</p>
         <p>Weather radar refresh: {formatIso(refreshTimes.weatherRadar)}</p>
         <p>Air quality refresh: {formatIso(refreshTimes.airQuality)}</p>
-        <p>Baltic boats refresh: {formatIso(refreshTimes.ships)}</p>
         <p>Rocket launches refresh: {formatIso(refreshTimes.rocketLaunches)}</p>
         <p>Carrier strike groups refresh: {formatIso(refreshTimes.carrierStrikeGroups)}</p>
         <p>ISS tracker refresh: {formatIso(refreshTimes.issTracker)}</p>

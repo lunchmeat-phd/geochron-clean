@@ -14,4 +14,3 @@ export * from "./rocketLaunches";
 export * from "./carrierStrikeGroups";
 export * from "./borders";
 export * from "./airTraffic";
-export * from "./ships";
