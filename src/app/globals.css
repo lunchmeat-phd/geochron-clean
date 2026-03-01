@@ -149,11 +149,59 @@ body,
   color: #b91c1c;
 }
 
+.iss-feed-panel {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 5;
+  width: min(360px, calc(100vw - 32px));
+  background: rgba(2, 6, 23, 0.88);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.28);
+}
+
+.iss-feed-title {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.iss-feed-title a {
+  color: #93c5fd;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.iss-feed-title a:hover {
+  text-decoration: underline;
+}
+
+.iss-feed-frame {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+}
+
 @media (max-width: 640px) {
   .status-panel {
     left: 8px;
     top: 8px;
     width: min(320px, calc(100vw - 16px));
     max-height: calc(100vh - 16px);
+  }
+
+  .iss-feed-panel {
+    right: 8px;
+    bottom: 8px;
+    width: min(320px, calc(100vw - 16px));
   }
 }

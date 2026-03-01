@@ -86,6 +86,10 @@ const DEFAULT_TOGGLES: LayerToggleState = {
   ships: false,
 };
 
+const ISS_LIVE_FEED_URL =
+  "https://www.youtube-nocookie.com/embed/live_stream?channel=UCLA_DiR1FfKNvjuUpBHmylQ&autoplay=1&mute=1&controls=1&rel=0";
+const ISS_LIVE_FALLBACK_URL = "https://www.youtube.com/watch?v=21X5lGlDOfg";
+
 function createBaseStyle(): maplibregl.StyleSpecification {
   return {
     version: 8,
@@ -972,6 +976,25 @@ export function MapView() {
         quakeStale={quakeStale}
         error={error}
       />
+      {toggles.issTracker ? (
+        <aside className="iss-feed-panel" aria-label="Live ISS Camera Feed">
+          <div className="iss-feed-title">
+            <span>ISS Live Feed</span>
+            <a href={ISS_LIVE_FALLBACK_URL} target="_blank" rel="noreferrer">
+              Open in YouTube
+            </a>
+          </div>
+          <iframe
+            title="ISS live camera"
+            src={ISS_LIVE_FEED_URL}
+            className="iss-feed-frame"
+            loading="lazy"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+        </aside>
+      ) : null}
     </main>
   );
 }
