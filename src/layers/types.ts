@@ -11,6 +11,7 @@ export type LayerKey =
   | "militaryBases"
   | "issTracker"
   | "rocketLaunches"
+  | "carrierStrikeGroups"
   | "airTrafficCivilian"
   | "airTrafficMilitary"
   | "ships";

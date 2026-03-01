@@ -21,6 +21,10 @@ type StatusPanelProps = {
   airTrafficMilitaryCount: number;
   shipsCount: number;
   rocketLaunchCount: number;
+  carrierStrikeGroupCount: number;
+  csgActiveSources: number;
+  csgTotalSources: number;
+  csgAverageConfidence: number;
   quakeStale: boolean;
   error: string | null;
 };
@@ -64,6 +68,10 @@ export function StatusPanel({
   airTrafficMilitaryCount,
   shipsCount,
   rocketLaunchCount,
+  carrierStrikeGroupCount,
+  csgActiveSources,
+  csgTotalSources,
+  csgAverageConfidence,
   quakeStale,
   error,
 }: StatusPanelProps) {
@@ -208,6 +216,14 @@ export function StatusPanel({
         <label>
           <input
             type="checkbox"
+            checked={toggles.carrierStrikeGroups}
+            onChange={(event) => onToggle("carrierStrikeGroups", event.target.checked)}
+          />
+          Carrier Strike Groups (Estimated)
+        </label>
+        <label>
+          <input
+            type="checkbox"
             checked={toggles.airTrafficCivilian}
             onChange={(event) => onToggle("airTrafficCivilian", event.target.checked)}
           />
@@ -245,6 +261,9 @@ export function StatusPanel({
         <p>Military flights: {airTrafficMilitaryCount}</p>
         <p>Baltic boats: {shipsCount}</p>
         <p>Rocket launches (48h): {rocketLaunchCount}</p>
+        <p>Carrier strike groups: {carrierStrikeGroupCount}</p>
+        <p>CSG active sources: {csgActiveSources}/{csgTotalSources}</p>
+        <p>CSG avg confidence: {csgAverageConfidence}/100</p>
         <p>Major cities refresh: {formatIso(refreshTimes.majorCities)}</p>
         <p>Country profiles refresh: {formatIso(refreshTimes.countryProfiles)}</p>
         <p>Military bases refresh: {formatIso(refreshTimes.militaryBases)}</p>
@@ -257,6 +276,7 @@ export function StatusPanel({
         <p>Air quality refresh: {formatIso(refreshTimes.airQuality)}</p>
         <p>Baltic boats refresh: {formatIso(refreshTimes.ships)}</p>
         <p>Rocket launches refresh: {formatIso(refreshTimes.rocketLaunches)}</p>
+        <p>Carrier strike groups refresh: {formatIso(refreshTimes.carrierStrikeGroups)}</p>
         <p>ISS tracker refresh: {formatIso(refreshTimes.issTracker)}</p>
         <p>Terminator refresh: {formatIso(refreshTimes.terminator)}</p>
         {quakeStale ? <p className="warn">Earthquake feed is currently stale.</p> : null}

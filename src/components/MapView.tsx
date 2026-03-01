@@ -8,6 +8,7 @@ import {
   attachCountryProfilesHoverTooltip,
   attachMajorCityHoverTooltip,
   attachMilitaryBasesHoverTooltip,
+  attachCarrierStrikeGroupsHoverTooltip,
   attachRocketLaunchesHoverTooltip,
   attachShipsHoverTooltip,
   ensureAirQualityLayer,
@@ -19,6 +20,7 @@ import {
   ensureIssTrackerLayer,
   ensureMajorCitiesLayer,
   ensureMilitaryBasesLayer,
+  ensureCarrierStrikeGroupsLayer,
   ensureOilPipelinesLayer,
   ensureRocketLaunchesLayer,
   ensureShipsLayer,
@@ -30,6 +32,7 @@ import {
   fetchAirTraffic,
   fetchIssTracker,
   fetchMilitaryBases,
+  fetchCarrierStrikeGroups,
   fetchRocketLaunches,
   fetchEarthquakes,
   fetchOilPipelines,
@@ -41,6 +44,7 @@ import {
   setMajorCitiesVisibility,
   setMilitaryAirTrafficVisibility,
   setMilitaryBasesVisibility,
+  setCarrierStrikeGroupsVisibility,
   setOilPipelinesVisibility,
   setRocketLaunchesVisibility,
   setShipsVisibility,
@@ -55,6 +59,7 @@ import {
   updateFiberCablesData,
   updateIssTrackerData,
   updateMilitaryBasesData,
+  updateCarrierStrikeGroupsData,
   updateOilPipelinesData,
   updateRocketLaunchesData,
   updateShipsData,
@@ -81,6 +86,7 @@ const DEFAULT_TOGGLES: LayerToggleState = {
   militaryBases: false,
   issTracker: false,
   rocketLaunches: false,
+  carrierStrikeGroups: false,
   airTrafficCivilian: false,
   airTrafficMilitary: true,
   ships: false,
@@ -130,6 +136,10 @@ export function MapView() {
   const [airTrafficMilitaryCount, setAirTrafficMilitaryCount] = useState(0);
   const [shipsCount, setShipsCount] = useState(0);
   const [rocketLaunchCount, setRocketLaunchCount] = useState(0);
+  const [carrierStrikeGroupCount, setCarrierStrikeGroupCount] = useState(0);
+  const [csgActiveSources, setCsgActiveSources] = useState(0);
+  const [csgTotalSources, setCsgTotalSources] = useState(0);
+  const [csgAverageConfidence, setCsgAverageConfidence] = useState(0);
   const [panelColor, setPanelColor] = useState("#ffffff");
   const [quakeStale, setQuakeStale] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -185,6 +195,7 @@ export function MapView() {
       safeRun(() => ensureOilPipelinesLayer(map));
       safeRun(() => ensureFiberCablesLayer(map));
       safeRun(() => ensureMilitaryBasesLayer(map));
+      safeRun(() => ensureCarrierStrikeGroupsLayer(map));
       safeRun(() => ensureAirTrafficLayer(map));
       safeRun(() => ensureShipsLayer(map));
       safeRun(() => ensureRocketLaunchesLayer(map));
@@ -202,6 +213,7 @@ export function MapView() {
       safeRun(() => setOilPipelinesVisibility(map, DEFAULT_TOGGLES.oilPipelines));
       safeRun(() => setFiberCablesVisibility(map, DEFAULT_TOGGLES.fiberCables));
       safeRun(() => setMilitaryBasesVisibility(map, DEFAULT_TOGGLES.militaryBases));
+      safeRun(() => setCarrierStrikeGroupsVisibility(map, DEFAULT_TOGGLES.carrierStrikeGroups));
       safeRun(() => setCivilianAirTrafficVisibility(map, DEFAULT_TOGGLES.airTrafficCivilian));
       safeRun(() => setMilitaryAirTrafficVisibility(map, DEFAULT_TOGGLES.airTrafficMilitary));
       safeRun(() => setShipsVisibility(map, DEFAULT_TOGGLES.ships));
@@ -246,6 +258,7 @@ export function MapView() {
     setOilPipelinesVisibility(map, toggles.oilPipelines);
     setFiberCablesVisibility(map, toggles.fiberCables);
     setMilitaryBasesVisibility(map, toggles.militaryBases);
+    setCarrierStrikeGroupsVisibility(map, toggles.carrierStrikeGroups);
     setCivilianAirTrafficVisibility(map, toggles.airTrafficCivilian);
     setMilitaryAirTrafficVisibility(map, toggles.airTrafficMilitary);
     setIssTrackerVisibility(map, toggles.issTracker);
@@ -262,6 +275,7 @@ export function MapView() {
     toggles.oilPipelines,
     toggles.fiberCables,
     toggles.militaryBases,
+    toggles.carrierStrikeGroups,
     toggles.airTrafficCivilian,
     toggles.airTrafficMilitary,
     toggles.issTracker,
@@ -861,6 +875,65 @@ export function MapView() {
 
   useEffect(() => {
     const map = mapRef.current;
+    if (!map || !mapReady || !toggles.carrierStrikeGroups) {
+      return;
+    }
+
+    let active = true;
+    let cleanupHover: (() => void) | null = null;
+
+    try {
+      ensureCarrierStrikeGroupsLayer(map);
+      setCarrierStrikeGroupsVisibility(map, true);
+      cleanupHover = attachCarrierStrikeGroupsHoverTooltip(map);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to initialize carrier strike groups layer");
+      return;
+    }
+
+    const refreshCarrierStrikeGroups = async () => {
+      try {
+        const payload = await fetchCarrierStrikeGroups();
+        if (!active) {
+          return;
+        }
+
+        updateCarrierStrikeGroupsData(map, payload.data);
+        setCarrierStrikeGroupCount(payload.groupCount);
+        setCsgActiveSources(payload.activeSources);
+        setCsgTotalSources(payload.totalSources);
+        setCsgAverageConfidence(payload.averageConfidenceScore);
+        setRefreshTimes((prev) => ({ ...prev, carrierStrikeGroups: payload.fetchedAt }));
+        if (payload.error) {
+          setError(payload.error);
+        }
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Failed to fetch carrier strike groups");
+      }
+    };
+
+    void refreshCarrierStrikeGroups();
+    const interval = window.setInterval(refreshCarrierStrikeGroups, 15 * 60_000);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      if (cleanupHover) {
+        cleanupHover();
+      }
+      setCarrierStrikeGroupsVisibility(map, false);
+      setCarrierStrikeGroupCount(0);
+      setCsgActiveSources(0);
+      setCsgTotalSources(0);
+      setCsgAverageConfidence(0);
+    };
+  }, [mapReady, toggles.carrierStrikeGroups]);
+
+  useEffect(() => {
+    const map = mapRef.current;
     if (!map || !mapReady || !toggles.issTracker) {
       return;
     }
@@ -941,6 +1014,7 @@ export function MapView() {
       militaryBases: next,
       issTracker: next,
       rocketLaunches: next,
+      carrierStrikeGroups: next,
       airTrafficCivilian: next,
       airTrafficMilitary: next,
       ships: next,
@@ -973,6 +1047,10 @@ export function MapView() {
         airTrafficMilitaryCount={airTrafficMilitaryCount}
         shipsCount={shipsCount}
         rocketLaunchCount={rocketLaunchCount}
+        carrierStrikeGroupCount={carrierStrikeGroupCount}
+        csgActiveSources={csgActiveSources}
+        csgTotalSources={csgTotalSources}
+        csgAverageConfidence={csgAverageConfidence}
         quakeStale={quakeStale}
         error={error}
       />

@@ -11,6 +11,7 @@ export * from "./fiberCables";
 export * from "./militaryBases";
 export * from "./issTracker";
 export * from "./rocketLaunches";
+export * from "./carrierStrikeGroups";
 export * from "./borders";
 export * from "./airTraffic";
 export * from "./ships";
