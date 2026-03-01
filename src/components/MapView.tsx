@@ -104,6 +104,25 @@ type StocksApiResponse = {
   error?: string;
 };
 
+type VisualTheme = "classic" | "stealth" | "mahogany" | "evergreen" | "midnight";
+
+const THEME_PRESETS: Record<VisualTheme, { panelColor: string; mapFilter?: string }> = {
+  classic: { panelColor: "#ffffff" },
+  stealth: { panelColor: "#000000", mapFilter: "grayscale(1) saturate(0) contrast(1.55) brightness(0.24)" },
+  mahogany: {
+    panelColor: "#2a1c16",
+    mapFilter: "grayscale(0.62) saturate(0.42) contrast(1.08) brightness(0.72) sepia(0.28) hue-rotate(-14deg)",
+  },
+  evergreen: {
+    panelColor: "#10231c",
+    mapFilter: "grayscale(0.6) saturate(0.4) contrast(1.08) brightness(0.74) hue-rotate(48deg)",
+  },
+  midnight: {
+    panelColor: "#0f1e33",
+    mapFilter: "grayscale(0.64) saturate(0.44) contrast(1.1) brightness(0.7) hue-rotate(18deg)",
+  },
+};
+
 const DEFAULT_TOGGLES: LayerToggleState = {
   terminator: true,
   sunAnalemma: true,
@@ -183,7 +202,7 @@ export function MapView() {
   const [csgAverageConfidence, setCsgAverageConfidence] = useState(0);
   const [panelColor, setPanelColor] = useState("#ffffff");
   const [brightnessPercent, setBrightnessPercent] = useState(100);
-  const [stealthMode, setStealthMode] = useState(false);
+  const [theme, setTheme] = useState<VisualTheme>("classic");
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [stockTickerEnabled, setStockTickerEnabled] = useState(true);
   const [stockQuotes, setStockQuotes] = useState<StockQuote[]>([]);
@@ -1260,8 +1279,9 @@ export function MapView() {
     setBrightnessPercent(clamped);
   };
 
-  const handleStealthModeChange = (next: boolean) => {
-    setStealthMode(next);
+  const handleThemeChange = (next: VisualTheme) => {
+    setTheme(next);
+    setPanelColor(THEME_PRESETS[next].panelColor);
   };
 
   const renderTickerItems = (keyPrefix: string) =>
@@ -1278,28 +1298,25 @@ export function MapView() {
       );
     });
 
+  const isStealthTheme = theme === "stealth";
+
   return (
-    <main className={`map-shell${stealthMode ? " stealth-mode" : ""}`} style={{ filter: `brightness(${brightnessPercent}%)` }}>
+    <main className={`map-shell map-theme-${theme}${isStealthTheme ? " stealth-mode" : ""}`} style={{ filter: `brightness(${brightnessPercent}%)` }}>
       <div
         ref={containerRef}
         className="map-container"
-        style={
-          stealthMode
-            ? {
-                filter: "grayscale(1) saturate(0) contrast(1.55) brightness(0.24)",
-              }
-            : undefined
-        }
+        style={THEME_PRESETS[theme].mapFilter ? { filter: THEME_PRESETS[theme].mapFilter } : undefined}
       />
-      {stealthMode ? <div className="stealth-veil" aria-hidden="true" /> : null}
+      {isStealthTheme ? <div className="stealth-veil" aria-hidden="true" /> : null}
+      {!isStealthTheme && theme !== "classic" ? <div className={`theme-veil theme-veil-${theme}`} aria-hidden="true" /> : null}
       <StatusPanel
         collapsed={panelCollapsed}
         onCollapsedChange={setPanelCollapsed}
         toggles={toggles}
         onToggle={handleToggle}
         onSetAllLayers={handleSetAllLayers}
-        stealthMode={stealthMode}
-        onStealthModeChange={handleStealthModeChange}
+        theme={theme}
+        onThemeChange={handleThemeChange}
         panelColor={panelColor}
         onPanelColorChange={handlePanelColorChange}
         brightnessPercent={brightnessPercent}
@@ -1332,7 +1349,7 @@ export function MapView() {
         error={error}
       />
       {toggles.issTracker ? (
-        <aside className={`iss-feed-panel${stealthMode ? " iss-feed-panel-stealth" : ""}`} aria-label="Live ISS Camera Feed">
+        <aside className={`iss-feed-panel iss-feed-panel-theme-${theme}${isStealthTheme ? " iss-feed-panel-stealth" : ""}`} aria-label="Live ISS Camera Feed">
           <div className="iss-feed-title">
             <span>ISS Live Feed</span>
             <a href={ISS_LIVE_FALLBACK_URL} target="_blank" rel="noreferrer">
@@ -1351,7 +1368,7 @@ export function MapView() {
         </aside>
       ) : null}
       {stockTickerEnabled ? (
-        <aside className={`stock-ticker${stealthMode ? " stock-ticker-stealth" : ""}`} aria-label="Stock ticker">
+        <aside className={`stock-ticker stock-ticker-theme-${theme}${isStealthTheme ? " stock-ticker-stealth" : ""}`} aria-label="Stock ticker">
           <div className="stock-ticker-track">
             {stockQuotes.length > 0 ? (
               <>

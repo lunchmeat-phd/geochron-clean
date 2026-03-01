@@ -9,8 +9,8 @@ type StatusPanelProps = {
   toggles: LayerToggleState;
   onToggle: (key: keyof LayerToggleState, next: boolean) => void;
   onSetAllLayers: (next: boolean) => void;
-  stealthMode: boolean;
-  onStealthModeChange: (next: boolean) => void;
+  theme: "classic" | "stealth" | "mahogany" | "evergreen" | "midnight";
+  onThemeChange: (next: "classic" | "stealth" | "mahogany" | "evergreen" | "midnight") => void;
   panelColor: string;
   onPanelColorChange: (next: string) => void;
   brightnessPercent: number;
@@ -126,8 +126,8 @@ export function StatusPanel({
   toggles,
   onToggle,
   onSetAllLayers,
-  stealthMode,
-  onStealthModeChange,
+  theme,
+  onThemeChange,
   panelColor,
   onPanelColorChange,
   brightnessPercent,
@@ -159,6 +159,7 @@ export function StatusPanel({
   quakeStale,
   error,
 }: StatusPanelProps) {
+  const isStealth = theme === "stealth";
   const [statusCollapsed, setStatusCollapsed] = useState(false);
   const [showPanelControlVisible, setShowPanelControlVisible] = useState(true);
   const [collapsedCategories, setCollapsedCategories] = useState<Record<LayerCategoryId, boolean>>({
@@ -294,10 +295,10 @@ export function StatusPanel({
 
   return (
     <aside
-      className={`status-panel${stealthMode ? " status-panel-stealth" : ""}${collapsed ? " status-panel-collapsed" : ""}`}
+      className={`status-panel status-panel-theme-${theme}${isStealth ? " status-panel-stealth" : ""}${collapsed ? " status-panel-collapsed" : ""}`}
       style={{
-        backgroundColor: stealthMode ? "#000000" : panelColor,
-        color: stealthMode ? "#d1fae5" : panelTextColor,
+        backgroundColor: isStealth ? "#000000" : panelColor,
+        color: isStealth ? "#d1fae5" : panelTextColor,
       }}
     >
       <h1>World Clock Plus</h1>
@@ -322,22 +323,35 @@ export function StatusPanel({
           <button type="button" onClick={() => onSetAllLayers(false)}>All Off</button>
         </div>
         <div className="quick-toggle-row">
-          <button
-            type="button"
-            className={stealthMode ? "quick-toggle-active" : ""}
-            onClick={() => onStealthModeChange(!stealthMode)}
+          <label className="theme-select-label" htmlFor="theme-select">Theme</label>
+        </div>
+        <div className="theme-select-row">
+          <select
+            id="theme-select"
+            className="theme-select"
+            value={theme}
+            onChange={(event) =>
+              onThemeChange(event.target.value as "classic" | "stealth" | "mahogany" | "evergreen" | "midnight")
+            }
           >
-            {stealthMode ? "Stealth On" : "Stealth Off"}
-          </button>
+            <option value="classic">Classic</option>
+            <option value="stealth">Stealth</option>
+            <option value="mahogany">Mahogany</option>
+            <option value="evergreen">Evergreen</option>
+            <option value="midnight">Midnight</option>
+          </select>
         </div>
         <div className="panel-color-row">
           <label htmlFor="panel-color-picker">Overlay color</label>
-          <input
-            id="panel-color-picker"
-            type="color"
-            value={panelColor}
-            onChange={(event) => onPanelColorChange(event.target.value)}
-          />
+          <div className="panel-color-control">
+            <span className="panel-color-icon" aria-hidden="true">🎨</span>
+            <input
+              id="panel-color-picker"
+              type="color"
+              value={panelColor}
+              onChange={(event) => onPanelColorChange(event.target.value)}
+            />
+          </div>
         </div>
         <div className="panel-color-presets">
           {grayscalePresets.map((preset) => (

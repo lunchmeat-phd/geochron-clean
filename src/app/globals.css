@@ -49,6 +49,53 @@ body,
   opacity: 0.95;
 }
 
+.theme-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+}
+
+.theme-veil-mahogany {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(62, 34, 22, 0.07) 0%, rgba(20, 8, 4, 0.34) 80%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(31, 12, 5, 0.1) 0px,
+      rgba(31, 12, 5, 0.1) 1px,
+      rgba(31, 12, 5, 0) 2px,
+      rgba(31, 12, 5, 0) 4px
+    );
+  opacity: 0.5;
+}
+
+.theme-veil-evergreen {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(20, 52, 40, 0.08) 0%, rgba(4, 18, 12, 0.34) 80%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(6, 26, 18, 0.1) 0px,
+      rgba(6, 26, 18, 0.1) 1px,
+      rgba(6, 26, 18, 0) 2px,
+      rgba(6, 26, 18, 0) 4px
+    );
+  opacity: 0.5;
+}
+
+.theme-veil-midnight {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(20, 40, 78, 0.08) 0%, rgba(3, 9, 20, 0.36) 80%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(6, 16, 36, 0.1) 0px,
+      rgba(6, 16, 36, 0.1) 1px,
+      rgba(6, 16, 36, 0) 2px,
+      rgba(6, 16, 36, 0) 4px
+    );
+  opacity: 0.52;
+}
+
 .status-panel {
   position: absolute;
   z-index: 5;
@@ -64,6 +111,21 @@ body,
   backdrop-filter: blur(2px);
   box-shadow: 0 8px 24px rgba(2, 6, 23, 0.14);
   color: #0f172a;
+}
+
+.status-panel-theme-mahogany {
+  border-color: rgba(120, 76, 42, 0.5);
+  box-shadow: 0 10px 28px rgba(40, 17, 8, 0.55);
+}
+
+.status-panel-theme-evergreen {
+  border-color: rgba(46, 106, 87, 0.45);
+  box-shadow: 0 10px 28px rgba(8, 30, 22, 0.55);
+}
+
+.status-panel-theme-midnight {
+  border-color: rgba(52, 94, 168, 0.45);
+  box-shadow: 0 10px 28px rgba(8, 17, 34, 0.6);
 }
 
 .status-panel-stealth {
@@ -84,6 +146,12 @@ body,
 }
 
 .status-panel-stealth .quick-toggle-row button {
+  background: rgba(8, 10, 12, 0.92);
+  color: #6b7280;
+  border-color: rgba(55, 65, 81, 0.35);
+}
+
+.status-panel-stealth .theme-select {
   background: rgba(8, 10, 12, 0.92);
   color: #6b7280;
   border-color: rgba(55, 65, 81, 0.35);
@@ -297,6 +365,49 @@ body,
   gap: 8px;
 }
 
+.theme-label {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.theme-select-label {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.theme-select-row {
+  margin-top: 6px;
+}
+
+.theme-select {
+  width: 100%;
+  border: 1px solid rgba(15, 23, 42, 0.3);
+  background: rgba(248, 250, 252, 0.92);
+  color: #0f172a;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+
+.theme-toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.theme-toggle-grid button {
+  border: 1px solid rgba(15, 23, 42, 0.3);
+  background: rgba(248, 250, 252, 0.9);
+  color: #0f172a;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
 .quick-toggle-row button {
   border: 1px solid rgba(15, 23, 42, 0.3);
   background: rgba(248, 250, 252, 0.9);
@@ -311,6 +422,57 @@ body,
   background: #111827;
   color: #f8fafc;
   border-color: #0f172a;
+}
+
+.theme-toggle-grid .quick-toggle-active {
+  background: #111827;
+  color: #f8fafc;
+  border-color: #0f172a;
+}
+
+.status-panel-theme-mahogany .theme-toggle-grid button,
+.status-panel-theme-mahogany .theme-select,
+.status-panel-theme-mahogany .quick-toggle-row button {
+  background: rgba(67, 35, 22, 0.9);
+  color: #f5e9dc;
+  border-color: rgba(183, 131, 84, 0.45);
+}
+
+.status-panel-theme-mahogany .theme-toggle-grid .quick-toggle-active,
+.status-panel-theme-mahogany .quick-toggle-row .quick-toggle-active {
+  background: #8a4f2d;
+  color: #fff3e8;
+  border-color: #c47d4f;
+}
+
+.status-panel-theme-evergreen .theme-toggle-grid button,
+.status-panel-theme-evergreen .theme-select,
+.status-panel-theme-evergreen .quick-toggle-row button {
+  background: rgba(12, 43, 33, 0.9);
+  color: #ddf6e9;
+  border-color: rgba(68, 144, 112, 0.45);
+}
+
+.status-panel-theme-evergreen .theme-toggle-grid .quick-toggle-active,
+.status-panel-theme-evergreen .quick-toggle-row .quick-toggle-active {
+  background: #1f6a51;
+  color: #eafff6;
+  border-color: #3ba47d;
+}
+
+.status-panel-theme-midnight .theme-toggle-grid button,
+.status-panel-theme-midnight .theme-select,
+.status-panel-theme-midnight .quick-toggle-row button {
+  background: rgba(15, 36, 66, 0.9);
+  color: #e0ebff;
+  border-color: rgba(81, 123, 187, 0.45);
+}
+
+.status-panel-theme-midnight .theme-toggle-grid .quick-toggle-active,
+.status-panel-theme-midnight .quick-toggle-row .quick-toggle-active {
+  background: #1f4f8a;
+  color: #eff6ff;
+  border-color: #5a8ed4;
 }
 
 .panel-color-row {
@@ -333,6 +495,17 @@ body,
   padding: 0;
   background: transparent;
   cursor: pointer;
+}
+
+.panel-color-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.panel-color-icon {
+  font-size: 14px;
+  line-height: 1;
 }
 
 .panel-color-presets {
@@ -451,6 +624,48 @@ body,
   color: #6b7280;
 }
 
+.iss-feed-panel-theme-mahogany {
+  background: rgba(37, 20, 13, 0.88);
+  border-color: rgba(169, 109, 71, 0.5);
+}
+
+.iss-feed-panel-theme-mahogany .iss-feed-title {
+  color: #f4dfcf;
+  border-bottom-color: rgba(169, 109, 71, 0.35);
+}
+
+.iss-feed-panel-theme-mahogany .iss-feed-title a {
+  color: #ffc89e;
+}
+
+.iss-feed-panel-theme-evergreen {
+  background: rgba(8, 31, 23, 0.88);
+  border-color: rgba(77, 147, 118, 0.5);
+}
+
+.iss-feed-panel-theme-evergreen .iss-feed-title {
+  color: #dbf6ea;
+  border-bottom-color: rgba(77, 147, 118, 0.35);
+}
+
+.iss-feed-panel-theme-evergreen .iss-feed-title a {
+  color: #8be3be;
+}
+
+.iss-feed-panel-theme-midnight {
+  background: rgba(8, 22, 43, 0.9);
+  border-color: rgba(90, 137, 211, 0.45);
+}
+
+.iss-feed-panel-theme-midnight .iss-feed-title {
+  color: #deecff;
+  border-bottom-color: rgba(90, 137, 211, 0.35);
+}
+
+.iss-feed-panel-theme-midnight .iss-feed-title a {
+  color: #9ec8ff;
+}
+
 .iss-feed-frame {
   display: block;
   width: 100%;
@@ -476,6 +691,21 @@ body,
 .stock-ticker-stealth {
   background: #000000;
   border-top-color: rgba(120, 120, 120, 0.5);
+}
+
+.stock-ticker-theme-mahogany {
+  background: rgba(37, 20, 13, 0.9);
+  border-top-color: rgba(169, 109, 71, 0.45);
+}
+
+.stock-ticker-theme-evergreen {
+  background: rgba(8, 31, 23, 0.9);
+  border-top-color: rgba(77, 147, 118, 0.45);
+}
+
+.stock-ticker-theme-midnight {
+  background: rgba(8, 22, 43, 0.92);
+  border-top-color: rgba(90, 137, 211, 0.45);
 }
 
 .stock-ticker-track {
