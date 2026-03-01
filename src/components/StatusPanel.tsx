@@ -20,6 +20,12 @@ type StatusPanelProps = {
   utcNow: string;
   refreshTimes: RefreshTimes;
   quakeCount: number;
+  shippingLaneCount: number;
+  flightCorridorCount: number;
+  tfrCount: number;
+  volcanoCount: number;
+  tropicalStormCount: number;
+  tsunamiWarningCount: number;
   cityCount: number;
   countryCount: number;
   pipelineCount: number;
@@ -35,6 +41,21 @@ type StatusPanelProps = {
   csgAverageConfidence: number;
   quakeStale: boolean;
   error: string | null;
+};
+
+type LayerCategoryId = "core" | "natural" | "aviation" | "maritime" | "defense";
+
+type LayerToggleItem = {
+  key: keyof LayerToggleState;
+  label: string;
+  icon: string;
+  showBaseLegend?: boolean;
+};
+
+type LayerCategory = {
+  id: LayerCategoryId;
+  title: string;
+  items: LayerToggleItem[];
 };
 
 function formatIso(value?: string): string {
@@ -116,6 +137,12 @@ export function StatusPanel({
   utcNow,
   refreshTimes,
   quakeCount,
+  shippingLaneCount,
+  flightCorridorCount,
+  tfrCount,
+  volcanoCount,
+  tropicalStormCount,
+  tsunamiWarningCount,
   cityCount,
   countryCount,
   pipelineCount,
@@ -134,11 +161,81 @@ export function StatusPanel({
 }: StatusPanelProps) {
   const [statusCollapsed, setStatusCollapsed] = useState(false);
   const [showPanelControlVisible, setShowPanelControlVisible] = useState(true);
+  const [collapsedCategories, setCollapsedCategories] = useState<Record<LayerCategoryId, boolean>>({
+    core: false,
+    natural: false,
+    aviation: false,
+    maritime: false,
+    defense: false,
+  });
   const idleTimerRef = useRef<number | null>(null);
   const grayscalePresets = ["#f9fafb", "#e5e7eb", "#d1d5db", "#9ca3af", "#4b5563"];
   const panelTextColor = textColorForHex(panelColor);
   const localHeader = formatLocalHeader(utcNow);
   const utcHeader = formatUtcHeader(utcNow);
+  const layerCategories: LayerCategory[] = [
+    {
+      id: "core",
+      title: "Core & Reference",
+      items: [
+        { key: "terminator", label: "Terminator", icon: "🌙" },
+        { key: "sunAnalemma", label: "Sun Analemma", icon: "☀️" },
+        { key: "majorCities", label: "Major Cities", icon: "🏙️" },
+        { key: "countryProfiles", label: "Country Profiles", icon: "🗺️" },
+      ],
+    },
+    {
+      id: "natural",
+      title: "Natural Hazards",
+      items: [
+        { key: "earthquakes", label: "Earthquakes", icon: "💥" },
+        { key: "weatherRadar", label: "Weather Radar", icon: "🌧️" },
+        { key: "airQuality", label: "Air Quality", icon: "🌫️" },
+        { key: "volcanoes", label: "Active Volcanic Eruptions", icon: "🌋" },
+        { key: "tropicalStorms", label: "Active Hurricanes/Tropical Storms", icon: "🌀" },
+        { key: "tsunamiWarnings", label: "Active Tsunami Warnings", icon: "🌊" },
+      ],
+    },
+    {
+      id: "aviation",
+      title: "Aviation & Airspace",
+      items: [
+        { key: "airTrafficCivilian", label: "Civilian Flights", icon: "✈️" },
+        { key: "airTrafficMilitary", label: "Military Flights", icon: "🛩️" },
+        { key: "flightCorridors", label: "Air Traffic Corridors", icon: "🧭" },
+        { key: "tfr", label: "Temporary Flight Restrictions", icon: "🚫" },
+      ],
+    },
+    {
+      id: "maritime",
+      title: "Maritime & Infrastructure",
+      items: [
+        { key: "shippingLanes", label: "Global Shipping Lanes", icon: "🛳️" },
+        { key: "oilPipelines", label: "Oil Pipelines", icon: "🛢️" },
+        { key: "fiberCables", label: "Fiber Cables (Undersea)", icon: "🔌" },
+      ],
+    },
+    {
+      id: "defense",
+      title: "Defense & Space",
+      items: [
+        { key: "militaryBases", label: "Military Bases", icon: "🛡️", showBaseLegend: true },
+        { key: "carrierStrikeGroups", label: "Carrier Strike Groups (Estimated)", icon: "🚢" },
+        { key: "issTracker", label: "ISS Tracker", icon: "🛰️" },
+        { key: "rocketLaunches", label: "Rocket Launches (last/next 24h)", icon: "🚀" },
+      ],
+    },
+  ];
+
+  const handleToggleCategoryCollapse = (id: LayerCategoryId) => {
+    setCollapsedCategories((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const setCategoryLayers = (keys: Array<keyof LayerToggleState>, next: boolean) => {
+    for (const key of keys) {
+      onToggle(key, next);
+    }
+  };
 
   useEffect(() => {
     const clearIdleTimer = () => {
@@ -269,145 +366,51 @@ export function StatusPanel({
 
       <section>
         <h2>Layers</h2>
-        <label>
-          <input
-            type="checkbox"
-            checked={toggles.terminator}
-            onChange={(event) => onToggle("terminator", event.target.checked)}
-          />
-          <span className="layer-key-icon" aria-hidden="true">🌙</span>
-          Terminator
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={toggles.sunAnalemma}
-            onChange={(event) => onToggle("sunAnalemma", event.target.checked)}
-          />
-          <span className="layer-key-icon" aria-hidden="true">☀️</span>
-          Sun Analemma
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={toggles.majorCities}
-            onChange={(event) => onToggle("majorCities", event.target.checked)}
-          />
-          <span className="layer-key-icon" aria-hidden="true">🏙️</span>
-          Major Cities
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={toggles.countryProfiles}
-            onChange={(event) => onToggle("countryProfiles", event.target.checked)}
-          />
-          <span className="layer-key-icon" aria-hidden="true">🗺️</span>
-          Country Profiles
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={toggles.earthquakes}
-            onChange={(event) => onToggle("earthquakes", event.target.checked)}
-          />
-          <span className="layer-key-icon" aria-hidden="true">💥</span>
-          Earthquakes
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={toggles.weatherRadar}
-            onChange={(event) => onToggle("weatherRadar", event.target.checked)}
-          />
-          <span className="layer-key-icon" aria-hidden="true">🌧️</span>
-          Weather Radar
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={toggles.airQuality}
-            onChange={(event) => onToggle("airQuality", event.target.checked)}
-          />
-          <span className="layer-key-icon" aria-hidden="true">🌫️</span>
-          Air Quality
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={toggles.oilPipelines}
-            onChange={(event) => onToggle("oilPipelines", event.target.checked)}
-          />
-          <span className="layer-key-icon" aria-hidden="true">🛢️</span>
-          Oil Pipelines
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={toggles.fiberCables}
-            onChange={(event) => onToggle("fiberCables", event.target.checked)}
-          />
-          <span className="layer-key-icon" aria-hidden="true">🔌</span>
-          Fiber Cables (Undersea)
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={toggles.militaryBases}
-            onChange={(event) => onToggle("militaryBases", event.target.checked)}
-          />
-          <span className="layer-key-icon" aria-hidden="true">🛡️</span>
-          Military Bases
-          <span className="legend-dot legend-us" />
-          US
-          <span className="legend-dot legend-non-us" />
-          Non-US
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={toggles.issTracker}
-            onChange={(event) => onToggle("issTracker", event.target.checked)}
-          />
-          <span className="layer-key-icon" aria-hidden="true">🛰️</span>
-          ISS Tracker
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={toggles.rocketLaunches}
-            onChange={(event) => onToggle("rocketLaunches", event.target.checked)}
-          />
-          <span className="layer-key-icon" aria-hidden="true">🚀</span>
-          Rocket Launches (last/next 24h)
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={toggles.carrierStrikeGroups}
-            onChange={(event) => onToggle("carrierStrikeGroups", event.target.checked)}
-          />
-          <span className="layer-key-icon" aria-hidden="true">🚢</span>
-          Carrier Strike Groups (Estimated)
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={toggles.airTrafficCivilian}
-            onChange={(event) => onToggle("airTrafficCivilian", event.target.checked)}
-          />
-          <span className="layer-key-icon" aria-hidden="true">✈️</span>
-          Civilian Flights
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={toggles.airTrafficMilitary}
-            onChange={(event) => onToggle("airTrafficMilitary", event.target.checked)}
-          />
-          <span className="layer-key-icon" aria-hidden="true">🛩️</span>
-          Military Flights
-        </label>
+        {layerCategories.map((category) => {
+          const categoryCollapsed = collapsedCategories[category.id];
+          const keys = category.items.map((item) => item.key);
+
+          return (
+            <div key={category.id} className="layer-category">
+              <div className="layer-category-header">
+                <button
+                  type="button"
+                  className="layer-category-toggle"
+                  onClick={() => handleToggleCategoryCollapse(category.id)}
+                >
+                  {categoryCollapsed ? "▸" : "▾"} {category.title}
+                </button>
+                <div className="layer-category-actions">
+                  <button type="button" onClick={() => setCategoryLayers(keys, true)}>All On</button>
+                  <button type="button" onClick={() => setCategoryLayers(keys, false)}>All Off</button>
+                </div>
+              </div>
+              {categoryCollapsed ? null : (
+                <div className="layer-category-body">
+                  {category.items.map((item) => (
+                    <label key={item.key}>
+                      <input
+                        type="checkbox"
+                        checked={toggles[item.key]}
+                        onChange={(event) => onToggle(item.key, event.target.checked)}
+                      />
+                      <span className="layer-key-icon" aria-hidden="true">{item.icon}</span>
+                      {item.label}
+                      {item.showBaseLegend ? (
+                        <>
+                          <span className="legend-dot legend-us" />
+                          US
+                          <span className="legend-dot legend-non-us" />
+                          Non-US
+                        </>
+                      ) : null}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </section>
 
       <section>
@@ -423,6 +426,12 @@ export function StatusPanel({
             <p>Major cities: {cityCount}</p>
             <p>Country profiles: {countryCount}</p>
             <p>Earthquakes: {quakeCount} events</p>
+            <p>Shipping lanes: {shippingLaneCount}</p>
+            <p>Flight corridors: {flightCorridorCount}</p>
+            <p>TFR zones: {tfrCount}</p>
+            <p>Active volcanoes: {volcanoCount}</p>
+            <p>Tropical systems: {tropicalStormCount}</p>
+            <p>Tsunami warnings: {tsunamiWarningCount}</p>
             <p>Oil pipelines: {pipelineCount}</p>
             <p>Fiber cable segments: {fiberCableCount}</p>
             <p>US military bases: {militaryAmericanCount}</p>
@@ -443,6 +452,12 @@ export function StatusPanel({
             <p>Sun analemma refresh: {formatIso(refreshTimes.sunAnalemma)}</p>
             <p>Weather radar refresh: {formatIso(refreshTimes.weatherRadar)}</p>
             <p>Air quality refresh: {formatIso(refreshTimes.airQuality)}</p>
+            <p>Shipping lanes refresh: {formatIso(refreshTimes.shippingLanes)}</p>
+            <p>Flight corridors refresh: {formatIso(refreshTimes.flightCorridors)}</p>
+            <p>TFR refresh: {formatIso(refreshTimes.tfr)}</p>
+            <p>Volcanoes refresh: {formatIso(refreshTimes.volcanoes)}</p>
+            <p>Tropical storms refresh: {formatIso(refreshTimes.tropicalStorms)}</p>
+            <p>Tsunami refresh: {formatIso(refreshTimes.tsunamiWarnings)}</p>
             <p>Rocket launches refresh: {formatIso(refreshTimes.rocketLaunches)}</p>
             <p>Carrier strike groups refresh: {formatIso(refreshTimes.carrierStrikeGroups)}</p>
             <p>ISS tracker refresh: {formatIso(refreshTimes.issTracker)}</p>

@@ -19,6 +19,9 @@ type CacheRecord = {
 };
 
 const SYMBOLS: Array<{ code: string; label: string }> = [
+  { code: "%5Espx", label: "S&P 500" },
+  { code: "%5Edji", label: "Dow Jones" },
+  { code: "%5Ehsi", label: "Hang Seng" },
   { code: "spy.us", label: "SPY" },
   { code: "qqq.us", label: "QQQ" },
   { code: "aapl.us", label: "AAPL" },
@@ -28,6 +31,11 @@ const SYMBOLS: Array<{ code: string; label: string }> = [
   { code: "meta.us", label: "META" },
   { code: "googl.us", label: "GOOGL" },
   { code: "tsla.us", label: "TSLA" },
+  { code: "vea.us", label: "VEA (Developed Mkts)" },
+  { code: "eem.us", label: "EEM (Emerging Mkts)" },
+  { code: "ewj.us", label: "EWJ (Japan)" },
+  { code: "ewu.us", label: "EWU (UK)" },
+  { code: "ewg.us", label: "EWG (Germany)" },
 ];
 
 const TTL_MS = 60_000;
@@ -75,12 +83,12 @@ function parseSingleQuote(csv: string): Omit<StockQuote, "symbol"> | null {
 }
 
 async function fetchQuotes(): Promise<StocksApiResponse> {
-  const quoteResults = await Promise.all(
+  const quoteResults = await Promise.allSettled(
     SYMBOLS.map(async (entry) => {
       const url = `https://stooq.com/q/l/?s=${entry.code}&f=sd2t2ohlcv&h&e=csv`;
       const upstream = await fetch(url, {
         cache: "no-store",
-        signal: AbortSignal.timeout(8_000),
+        signal: AbortSignal.timeout(12_000),
       });
 
       if (!upstream.ok) {
@@ -101,7 +109,10 @@ async function fetchQuotes(): Promise<StocksApiResponse> {
     }),
   );
 
-  const quotes = quoteResults.filter((quote): quote is StockQuote => quote !== null);
+  const quotes = quoteResults
+    .filter((result): result is PromiseFulfilledResult<StockQuote | null> => result.status === "fulfilled")
+    .map((result) => result.value)
+    .filter((quote): quote is StockQuote => quote !== null);
   if (quotes.length === 0) {
     throw new Error("Stocks source returned no quotes");
   }

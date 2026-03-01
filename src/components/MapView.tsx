@@ -12,6 +12,12 @@ import {
   attachCarrierStrikeGroupsHoverTooltip,
   attachRocketLaunchesHoverTooltip,
   ensureAirQualityLayer,
+  ensureShippingLanesLayer,
+  ensureAirTrafficCorridorsLayer,
+  ensureTfrLayer,
+  ensureVolcanoLayer,
+  ensureTropicalStormLayer,
+  ensureTsunamiLayer,
   ensureAirTrafficLayer,
   ensureBoundaryLayers,
   ensureCountryProfilesLayer,
@@ -29,6 +35,11 @@ import {
   fetchCountryProfiles,
   fetchFiberCables,
   fetchAirTraffic,
+  fetchShippingLanes,
+  fetchTfr,
+  fetchVolcanoes,
+  fetchTropicalStorms,
+  fetchTsunamiWarnings,
   fetchIssTracker,
   fetchMilitaryBases,
   fetchCarrierStrikeGroups,
@@ -48,10 +59,21 @@ import {
   setSunAnalemmaVisibility,
   setEarthquakeData,
   setAirQualityVisibility,
+  setShippingLanesVisibility,
+  setAirTrafficCorridorsVisibility,
+  setTfrVisibility,
+  setVolcanoVisibility,
+  setTropicalStormVisibility,
+  setTsunamiVisibility,
   setEarthquakesVisibility,
   setTerminatorVisibility,
   setWeatherRadarVisibility,
   updateAirTrafficData,
+  updateShippingLanesData,
+  updateTfrData,
+  updateVolcanoData,
+  updateTropicalStormData,
+  updateTsunamiData,
   updateCountryProfilesData,
   updateFiberCablesData,
   updateIssTrackerData,
@@ -90,6 +112,12 @@ const DEFAULT_TOGGLES: LayerToggleState = {
   earthquakes: true,
   weatherRadar: true,
   airQuality: false,
+  shippingLanes: true,
+  flightCorridors: false,
+  tfr: false,
+  volcanoes: true,
+  tropicalStorms: true,
+  tsunamiWarnings: true,
   oilPipelines: true,
   fiberCables: true,
   militaryBases: false,
@@ -136,6 +164,12 @@ export function MapView() {
   const [cityCount, setCityCount] = useState(0);
   const [countryCount, setCountryCount] = useState(0);
   const [quakeCount, setQuakeCount] = useState(0);
+  const [shippingLaneCount, setShippingLaneCount] = useState(0);
+  const [flightCorridorCount, setFlightCorridorCount] = useState(9);
+  const [tfrCount, setTfrCount] = useState(0);
+  const [volcanoCount, setVolcanoCount] = useState(0);
+  const [tropicalStormCount, setTropicalStormCount] = useState(0);
+  const [tsunamiWarningCount, setTsunamiWarningCount] = useState(0);
   const [pipelineCount, setPipelineCount] = useState(0);
   const [fiberCableCount, setFiberCableCount] = useState(0);
   const [militaryAmericanCount, setMilitaryAmericanCount] = useState(0);
@@ -211,6 +245,12 @@ export function MapView() {
       safeRun(() => ensureSunAnalemmaLayer(map));
       safeRun(() => ensureWeatherRadarLayer(map));
       safeRun(() => ensureAirQualityLayer(map));
+      safeRun(() => ensureShippingLanesLayer(map));
+      safeRun(() => ensureAirTrafficCorridorsLayer(map));
+      safeRun(() => ensureTfrLayer(map));
+      safeRun(() => ensureVolcanoLayer(map));
+      safeRun(() => ensureTropicalStormLayer(map));
+      safeRun(() => ensureTsunamiLayer(map));
       safeRun(() => ensureOilPipelinesLayer(map));
       safeRun(() => ensureFiberCablesLayer(map));
       safeRun(() => ensureMilitaryBasesLayer(map));
@@ -228,6 +268,12 @@ export function MapView() {
       safeRun(() => setCountryProfilesVisibility(map, DEFAULT_TOGGLES.countryProfiles));
       safeRun(() => setWeatherRadarVisibility(map, DEFAULT_TOGGLES.weatherRadar));
       safeRun(() => setAirQualityVisibility(map, DEFAULT_TOGGLES.airQuality));
+      safeRun(() => setShippingLanesVisibility(map, DEFAULT_TOGGLES.shippingLanes));
+      safeRun(() => setAirTrafficCorridorsVisibility(map, DEFAULT_TOGGLES.flightCorridors));
+      safeRun(() => setTfrVisibility(map, DEFAULT_TOGGLES.tfr));
+      safeRun(() => setVolcanoVisibility(map, DEFAULT_TOGGLES.volcanoes));
+      safeRun(() => setTropicalStormVisibility(map, DEFAULT_TOGGLES.tropicalStorms));
+      safeRun(() => setTsunamiVisibility(map, DEFAULT_TOGGLES.tsunamiWarnings));
       safeRun(() => setOilPipelinesVisibility(map, DEFAULT_TOGGLES.oilPipelines));
       safeRun(() => setFiberCablesVisibility(map, DEFAULT_TOGGLES.fiberCables));
       safeRun(() => setMilitaryBasesVisibility(map, DEFAULT_TOGGLES.militaryBases));
@@ -272,6 +318,12 @@ export function MapView() {
     setCountryProfilesVisibility(map, toggles.countryProfiles);
     setWeatherRadarVisibility(map, toggles.weatherRadar);
     setAirQualityVisibility(map, toggles.airQuality);
+    setShippingLanesVisibility(map, toggles.shippingLanes);
+    setAirTrafficCorridorsVisibility(map, toggles.flightCorridors);
+    setTfrVisibility(map, toggles.tfr);
+    setVolcanoVisibility(map, toggles.volcanoes);
+    setTropicalStormVisibility(map, toggles.tropicalStorms);
+    setTsunamiVisibility(map, toggles.tsunamiWarnings);
     setOilPipelinesVisibility(map, toggles.oilPipelines);
     setFiberCablesVisibility(map, toggles.fiberCables);
     setMilitaryBasesVisibility(map, toggles.militaryBases);
@@ -288,6 +340,12 @@ export function MapView() {
     toggles.countryProfiles,
     toggles.weatherRadar,
     toggles.airQuality,
+    toggles.shippingLanes,
+    toggles.flightCorridors,
+    toggles.tfr,
+    toggles.volcanoes,
+    toggles.tropicalStorms,
+    toggles.tsunamiWarnings,
     toggles.oilPipelines,
     toggles.fiberCables,
     toggles.militaryBases,
@@ -974,6 +1032,194 @@ export function MapView() {
     return () => window.clearInterval(interval);
   }, [mapReady]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !toggles.shippingLanes) {
+      return;
+    }
+
+    let active = true;
+    const refreshShippingLanes = async () => {
+      try {
+        const payload = await fetchShippingLanes();
+        if (!active) {
+          return;
+        }
+        updateShippingLanesData(map, payload.data);
+        setShippingLaneCount(payload.data.features.length);
+        setRefreshTimes((prev) => ({ ...prev, shippingLanes: payload.fetchedAt }));
+        if (payload.error) {
+          setError(payload.error);
+        }
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Failed to fetch shipping lanes");
+      }
+    };
+
+    void refreshShippingLanes();
+    const interval = window.setInterval(refreshShippingLanes, 6 * 60 * 60_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      setShippingLaneCount(0);
+    };
+  }, [mapReady, toggles.shippingLanes]);
+
+  useEffect(() => {
+    if (!mapReady) {
+      return;
+    }
+    setFlightCorridorCount(9);
+    setRefreshTimes((prev) => ({ ...prev, flightCorridors: new Date().toISOString() }));
+  }, [mapReady, toggles.flightCorridors]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !toggles.tfr) {
+      return;
+    }
+
+    let active = true;
+    const refreshTfr = async () => {
+      try {
+        const payload = await fetchTfr();
+        if (!active) {
+          return;
+        }
+        updateTfrData(map, payload.data);
+        setTfrCount(payload.data.features.length);
+        setRefreshTimes((prev) => ({ ...prev, tfr: payload.fetchedAt }));
+        if (payload.error) {
+          setError(payload.error);
+        }
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Failed to fetch TFR data");
+      }
+    };
+
+    void refreshTfr();
+    const interval = window.setInterval(refreshTfr, 5 * 60_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      setTfrCount(0);
+    };
+  }, [mapReady, toggles.tfr]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !toggles.volcanoes) {
+      return;
+    }
+
+    let active = true;
+    const refreshVolcanoes = async () => {
+      try {
+        const payload = await fetchVolcanoes();
+        if (!active) {
+          return;
+        }
+        updateVolcanoData(map, payload.data);
+        setVolcanoCount(payload.data.features.length);
+        setRefreshTimes((prev) => ({ ...prev, volcanoes: payload.fetchedAt }));
+        if (payload.error) {
+          setError(payload.error);
+        }
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Failed to fetch volcano events");
+      }
+    };
+
+    void refreshVolcanoes();
+    const interval = window.setInterval(refreshVolcanoes, 10 * 60_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      setVolcanoCount(0);
+    };
+  }, [mapReady, toggles.volcanoes]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !toggles.tropicalStorms) {
+      return;
+    }
+
+    let active = true;
+    const refreshTropical = async () => {
+      try {
+        const payload = await fetchTropicalStorms();
+        if (!active) {
+          return;
+        }
+        updateTropicalStormData(map, payload.data);
+        setTropicalStormCount(payload.data.features.length);
+        setRefreshTimes((prev) => ({ ...prev, tropicalStorms: payload.fetchedAt }));
+        if (payload.error) {
+          setError(payload.error);
+        }
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Failed to fetch tropical storms");
+      }
+    };
+
+    void refreshTropical();
+    const interval = window.setInterval(refreshTropical, 10 * 60_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      setTropicalStormCount(0);
+    };
+  }, [mapReady, toggles.tropicalStorms]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !toggles.tsunamiWarnings) {
+      return;
+    }
+
+    let active = true;
+    const refreshTsunami = async () => {
+      try {
+        const payload = await fetchTsunamiWarnings();
+        if (!active) {
+          return;
+        }
+        updateTsunamiData(map, payload.data);
+        setTsunamiWarningCount(payload.data.features.length);
+        setRefreshTimes((prev) => ({ ...prev, tsunamiWarnings: payload.fetchedAt }));
+        if (payload.error) {
+          setError(payload.error);
+        }
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Failed to fetch tsunami warnings");
+      }
+    };
+
+    void refreshTsunami();
+    const interval = window.setInterval(refreshTsunami, 2 * 60_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      setTsunamiWarningCount(0);
+    };
+  }, [mapReady, toggles.tsunamiWarnings]);
+
   const handleToggle = (key: keyof LayerToggleState, next: boolean) => {
     setToggles((prev) => ({ ...prev, [key]: next }));
   };
@@ -987,7 +1233,13 @@ export function MapView() {
       countryProfiles: next,
       earthquakes: next,
       weatherRadar: next,
-      airQuality: next,
+      airQuality: next ? prev.airQuality : false,
+      shippingLanes: next,
+      flightCorridors: next,
+      tfr: next,
+      volcanoes: next,
+      tropicalStorms: next,
+      tsunamiWarnings: next,
       oilPipelines: next,
       fiberCables: next,
       militaryBases: next,
@@ -1059,6 +1311,12 @@ export function MapView() {
         cityCount={cityCount}
         countryCount={countryCount}
         quakeCount={quakeCount}
+        shippingLaneCount={shippingLaneCount}
+        flightCorridorCount={flightCorridorCount}
+        tfrCount={tfrCount}
+        volcanoCount={volcanoCount}
+        tropicalStormCount={tropicalStormCount}
+        tsunamiWarningCount={tsunamiWarningCount}
         pipelineCount={pipelineCount}
         fiberCableCount={fiberCableCount}
         militaryAmericanCount={militaryAmericanCount}

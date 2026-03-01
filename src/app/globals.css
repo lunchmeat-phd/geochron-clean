@@ -194,6 +194,13 @@ body,
   border-color: rgba(55, 65, 81, 0.35);
 }
 
+.status-panel-stealth .layer-category-toggle,
+.status-panel-stealth .layer-category-actions button {
+  background: rgba(8, 10, 12, 0.92);
+  color: #6b7280;
+  border-color: rgba(55, 65, 81, 0.35);
+}
+
 .status-panel p {
   margin: 4px 0;
   font-size: 12px;
@@ -210,6 +217,48 @@ body,
   width: 1.2em;
   text-align: center;
   margin: 0 4px 0 3px;
+}
+
+.layer-category {
+  margin-top: 8px;
+  border-top: 1px solid rgba(15, 23, 42, 0.12);
+  padding-top: 6px;
+}
+
+.layer-category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.layer-category-toggle {
+  border: 1px solid rgba(15, 23, 42, 0.25);
+  background: rgba(248, 250, 252, 0.9);
+  color: #0f172a;
+  border-radius: 6px;
+  padding: 3px 7px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.layer-category-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.layer-category-actions button {
+  border: 1px solid rgba(15, 23, 42, 0.25);
+  background: rgba(248, 250, 252, 0.9);
+  color: #0f172a;
+  border-radius: 6px;
+  padding: 3px 7px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.layer-category-body {
+  margin-top: 4px;
 }
 
 .quick-toggle-row {

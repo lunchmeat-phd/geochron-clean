@@ -43,6 +43,41 @@ function isPointInsidePolygon(point: [number, number], ring: [number, number][])
   return inside;
 }
 
+function wrapLonAroundReference(lon: number, referenceLon: number): number {
+  let wrapped = lon;
+  while (wrapped - referenceLon > 180) {
+    wrapped -= 360;
+  }
+  while (wrapped - referenceLon < -180) {
+    wrapped += 360;
+  }
+  return wrapped;
+}
+
+function unwrapRingForReference(ring: [number, number][], referenceLon: number): [number, number][] {
+  if (ring.length === 0) {
+    return [];
+  }
+
+  const unwrapped: [number, number][] = [];
+  let prevLon = wrapLonAroundReference(ring[0][0], referenceLon);
+  unwrapped.push([prevLon, ring[0][1]]);
+
+  for (let i = 1; i < ring.length; i += 1) {
+    let lon = wrapLonAroundReference(ring[i][0], referenceLon);
+    while (lon - prevLon > 180) {
+      lon -= 360;
+    }
+    while (lon - prevLon < -180) {
+      lon += 360;
+    }
+    unwrapped.push([lon, ring[i][1]]);
+    prevLon = lon;
+  }
+
+  return unwrapped;
+}
+
 export function getSunPosition(date: Date): { latitude: number; longitude: number } {
   const unixDays = date.getTime() / 86400000 + 2440587.5 - 2451545;
   const meanLongitude = (280.46 + 0.9856474 * unixDays) % 360;
@@ -88,8 +123,18 @@ export function createNightTerminatorGeoJson(date = new Date()): Feature<Polygon
   }
 
   const antiSolarPoint: [number, number] = toLonLat([-s[0], -s[1], -s[2]]);
+  const antiReferenceLon = antiSolarPoint[0];
+  const antiRing = unwrapRingForReference(ring, antiReferenceLon);
+  const antiPoint: [number, number] = [wrapLonAroundReference(antiSolarPoint[0], antiReferenceLon), antiSolarPoint[1]];
+  const antiInside = isPointInsidePolygon(antiPoint, antiRing);
 
-  if (!isPointInsidePolygon(antiSolarPoint, ring)) {
+  const sunReferenceLon = sun.longitude;
+  const sunRing = unwrapRingForReference(ring, sunReferenceLon);
+  const sunPoint: [number, number] = [wrapLonAroundReference(sun.longitude, sunReferenceLon), sun.latitude];
+  const sunInside = isPointInsidePolygon(sunPoint, sunRing);
+
+  // Night polygon should contain the anti-solar point and exclude the solar point.
+  if (!antiInside || sunInside) {
     ring.reverse();
   }
 
