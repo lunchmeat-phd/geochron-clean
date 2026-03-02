@@ -7,6 +7,8 @@ import { ICONS } from "@/layers/icons";
 export const AIR_TRAFFIC_SOURCE_ID = "air-traffic-source";
 export const AIR_TRAFFIC_LAYER_ID = "air-traffic-layer";
 export const AIR_TRAFFIC_MIL_LAYER_ID = "air-traffic-military-layer";
+export const AIR_TRAFFIC_SQUAWK_7700_LAYER_ID = "air-traffic-squawk-7700-layer";
+export const AIR_TRAFFIC_SQUAWK_7600_LAYER_ID = "air-traffic-squawk-7600-layer";
 
 function radiusByZoom(zoom: number): number {
   if (zoom < 4) {
@@ -33,6 +35,7 @@ function toGeoJson(flights: AdsbFlight[]): FeatureCollection<Point> {
         hex: flight.hex,
         callsign: flight.flight || flight.r || flight.hex,
         model: flight.t || "unknown",
+        squawk: flight.squawk ?? null,
         altitude: typeof flight.alt_baro === "number" ? flight.alt_baro : null,
         speed: typeof flight.gs === "number" ? flight.gs : null,
         heading: typeof flight.track === "number" ? flight.track : null,
@@ -63,7 +66,12 @@ export function ensureAirTrafficLayer(map: Map): void {
       type: "symbol",
       source: AIR_TRAFFIC_SOURCE_ID,
       minzoom: 4,
-      filter: ["==", ["get", "military"], false],
+      filter: [
+        "all",
+        ["==", ["get", "military"], false],
+        ["!=", ["get", "squawk"], "7700"],
+        ["!=", ["get", "squawk"], "7600"],
+      ],
       layout: {
         "icon-image": ICONS.aircraftCivilian,
         "icon-size": ["interpolate", ["linear"], ["zoom"], 4, 0.9, 6, 0.72, 8, 0.56],
@@ -80,7 +88,12 @@ export function ensureAirTrafficLayer(map: Map): void {
       id: AIR_TRAFFIC_MIL_LAYER_ID,
       type: "symbol",
       source: AIR_TRAFFIC_SOURCE_ID,
-      filter: ["==", ["get", "military"], true],
+      filter: [
+        "all",
+        ["==", ["get", "military"], true],
+        ["!=", ["get", "squawk"], "7700"],
+        ["!=", ["get", "squawk"], "7600"],
+      ],
       layout: {
         "icon-image": ICONS.aircraftMilitary,
         "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 1.05, 4, 0.86, 8, 0.68],
@@ -88,6 +101,46 @@ export function ensureAirTrafficLayer(map: Map): void {
         "icon-ignore-placement": true,
         "icon-rotate": ["coalesce", ["get", "heading"], 0],
         "icon-rotation-alignment": "map",
+      },
+    });
+  }
+
+  if (!map.getLayer(AIR_TRAFFIC_SQUAWK_7700_LAYER_ID)) {
+    map.addLayer({
+      id: AIR_TRAFFIC_SQUAWK_7700_LAYER_ID,
+      type: "symbol",
+      source: AIR_TRAFFIC_SOURCE_ID,
+      filter: ["==", ["get", "squawk"], "7700"],
+      layout: {
+        "icon-image": ICONS.aircraftMilitary,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 4.4, 4, 3.6, 8, 2.8],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+        "icon-rotate": ["coalesce", ["get", "heading"], 0],
+        "icon-rotation-alignment": "map",
+      },
+      paint: {
+        "icon-color": "#ef4444",
+      },
+    });
+  }
+
+  if (!map.getLayer(AIR_TRAFFIC_SQUAWK_7600_LAYER_ID)) {
+    map.addLayer({
+      id: AIR_TRAFFIC_SQUAWK_7600_LAYER_ID,
+      type: "symbol",
+      source: AIR_TRAFFIC_SOURCE_ID,
+      filter: ["==", ["get", "squawk"], "7600"],
+      layout: {
+        "icon-image": ICONS.aircraftMilitary,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 4.0, 4, 3.3, 8, 2.6],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+        "icon-rotate": ["coalesce", ["get", "heading"], 0],
+        "icon-rotation-alignment": "map",
+      },
+      paint: {
+        "icon-color": "#f59e0b",
       },
     });
   }
@@ -99,6 +152,8 @@ export function setAirTrafficVisibility(map: Map, visible: boolean): void {
   }
   setCivilianAirTrafficVisibility(map, visible);
   setMilitaryAirTrafficVisibility(map, visible);
+  setSquawk7700Visibility(map, visible);
+  setSquawk7600Visibility(map, visible);
 }
 
 export function setCivilianAirTrafficVisibility(map: Map, visible: boolean): void {
@@ -123,6 +178,34 @@ export function setMilitaryAirTrafficVisibility(map: Map, visible: boolean): voi
     const visibility = visible ? "visible" : "none";
     if (map.getLayer(AIR_TRAFFIC_MIL_LAYER_ID)) {
       map.setLayoutProperty(AIR_TRAFFIC_MIL_LAYER_ID, "visibility", visibility);
+    }
+  } catch {
+    // Ignore layer visibility changes during map/style teardown.
+  }
+}
+
+export function setSquawk7700Visibility(map: Map, visible: boolean): void {
+  if (!map || typeof (map as unknown as { getLayer?: unknown }).getLayer !== "function") {
+    return;
+  }
+  try {
+    const visibility = visible ? "visible" : "none";
+    if (map.getLayer(AIR_TRAFFIC_SQUAWK_7700_LAYER_ID)) {
+      map.setLayoutProperty(AIR_TRAFFIC_SQUAWK_7700_LAYER_ID, "visibility", visibility);
+    }
+  } catch {
+    // Ignore layer visibility changes during map/style teardown.
+  }
+}
+
+export function setSquawk7600Visibility(map: Map, visible: boolean): void {
+  if (!map || typeof (map as unknown as { getLayer?: unknown }).getLayer !== "function") {
+    return;
+  }
+  try {
+    const visibility = visible ? "visible" : "none";
+    if (map.getLayer(AIR_TRAFFIC_SQUAWK_7600_LAYER_ID)) {
+      map.setLayoutProperty(AIR_TRAFFIC_SQUAWK_7600_LAYER_ID, "visibility", visibility);
     }
   } catch {
     // Ignore layer visibility changes during map/style teardown.
@@ -156,11 +239,13 @@ function formatAircraftPopup(feature: GeoJSON.Feature): string {
   const model = typeof props.model === "string" ? props.model : "Unknown";
   const hex = typeof props.hex === "string" ? props.hex.toUpperCase() : "Unknown";
   const military = props.military === true ? "Yes" : "No";
+  const squawk = typeof props.squawk === "string" && props.squawk ? props.squawk : "Unknown";
 
   return `
     <div style="font-family: system-ui, sans-serif; font-size: 12px; line-height: 1.4; color: #0f172a;">
       <strong>${callsign}</strong><br/>
       Model: ${model}<br/>
+      Squawk: ${squawk}<br/>
       Altitude: ${formatAlt(props.altitude)}<br/>
       Speed: ${formatKts(props.speed)}<br/>
       Heading: ${formatHeading(props.heading)}<br/>
@@ -209,6 +294,8 @@ export function attachAirTrafficHoverTooltip(map: Map): () => void {
 
   cleanups.push(...attachHoverForLayer(map, AIR_TRAFFIC_LAYER_ID, popupRef));
   cleanups.push(...attachHoverForLayer(map, AIR_TRAFFIC_MIL_LAYER_ID, popupRef));
+  cleanups.push(...attachHoverForLayer(map, AIR_TRAFFIC_SQUAWK_7700_LAYER_ID, popupRef));
+  cleanups.push(...attachHoverForLayer(map, AIR_TRAFFIC_SQUAWK_7600_LAYER_ID, popupRef));
 
   return () => {
     cleanups.forEach((cleanup) => cleanup());

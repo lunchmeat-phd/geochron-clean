@@ -59,6 +59,11 @@ function sanitizeFlights(raw: unknown): AdsbFlight[] {
       flight: typeof item.flight === "string" ? item.flight.trim() : undefined,
       r: typeof item.r === "string" ? item.r.trim() : undefined,
       t: typeof item.t === "string" ? item.t.trim() : undefined,
+      squawk: typeof item.squawk === "string"
+        ? item.squawk.trim()
+        : typeof item.sqk === "string"
+          ? item.sqk.trim()
+          : undefined,
       lat: Number(item.lat),
       lon: Number(item.lon),
       alt_baro: typeof item.alt_baro === "number" || typeof item.alt_baro === "string" ? (item.alt_baro as number | string) : undefined,

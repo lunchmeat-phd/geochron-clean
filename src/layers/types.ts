@@ -19,7 +19,9 @@ export type LayerKey =
   | "rocketLaunches"
   | "carrierStrikeGroups"
   | "airTrafficCivilian"
-  | "airTrafficMilitary";
+  | "airTrafficMilitary"
+  | "airTrafficSquawk7700"
+  | "airTrafficSquawk7600";
 
 export type LayerToggleState = Record<LayerKey, boolean>;
 

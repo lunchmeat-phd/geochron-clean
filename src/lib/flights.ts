@@ -3,6 +3,7 @@ export type AdsbFlight = {
   flight?: string;
   r?: string;
   t?: string;
+  squawk?: string;
   lat: number;
   lon: number;
   alt_baro?: number | string;

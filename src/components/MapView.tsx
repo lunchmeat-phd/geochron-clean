@@ -53,6 +53,8 @@ import {
   setMajorCitiesVisibility,
   setMilitaryAirTrafficVisibility,
   setMilitaryBasesVisibility,
+  setSquawk7600Visibility,
+  setSquawk7700Visibility,
   setCarrierStrikeGroupsVisibility,
   setOilPipelinesVisibility,
   setRocketLaunchesVisibility,
@@ -104,6 +106,16 @@ type StocksApiResponse = {
   error?: string;
 };
 
+type EmergencySquawkAlert = {
+  key: string;
+  hex: string;
+  callsign: string;
+  squawk: "7700" | "7600";
+  lat: number;
+  lon: number;
+  expiresAt: number;
+};
+
 type VisualTheme = "classic" | "stealth" | "mahogany" | "evergreen" | "midnight";
 
 const THEME_PRESETS: Record<VisualTheme, { panelColor: string; mapFilter?: string }> = {
@@ -145,6 +157,8 @@ const DEFAULT_TOGGLES: LayerToggleState = {
   carrierStrikeGroups: false,
   airTrafficCivilian: false,
   airTrafficMilitary: true,
+  airTrafficSquawk7700: true,
+  airTrafficSquawk7600: true,
 };
 
 const ISS_LIVE_FEED_URL =
@@ -209,6 +223,7 @@ export function MapView() {
   const [viewMode, setViewMode] = useState<"map" | "globe">("map");
   const [stockQuotes, setStockQuotes] = useState<StockQuote[]>([]);
   const [stockError, setStockError] = useState<string | null>(null);
+  const [emergencySquawkAlerts, setEmergencySquawkAlerts] = useState<EmergencySquawkAlert[]>([]);
   const [quakeStale, setQuakeStale] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [earthquakeData, setEarthquakeDataState] = useState<UsgsEarthquakeCollection | null>(null);
@@ -318,6 +333,8 @@ export function MapView() {
       safeRun(() => setCarrierStrikeGroupsVisibility(map, DEFAULT_TOGGLES.carrierStrikeGroups));
       safeRun(() => setCivilianAirTrafficVisibility(map, DEFAULT_TOGGLES.airTrafficCivilian));
       safeRun(() => setMilitaryAirTrafficVisibility(map, DEFAULT_TOGGLES.airTrafficMilitary));
+      safeRun(() => setSquawk7700Visibility(map, DEFAULT_TOGGLES.airTrafficSquawk7700));
+      safeRun(() => setSquawk7600Visibility(map, DEFAULT_TOGGLES.airTrafficSquawk7600));
       safeRun(() => setRocketLaunchesVisibility(map, DEFAULT_TOGGLES.rocketLaunches));
 
       const terminateAt = updateTerminator(map);
@@ -368,6 +385,8 @@ export function MapView() {
     setCarrierStrikeGroupsVisibility(map, toggles.carrierStrikeGroups);
     setCivilianAirTrafficVisibility(map, toggles.airTrafficCivilian);
     setMilitaryAirTrafficVisibility(map, toggles.airTrafficMilitary);
+    setSquawk7700Visibility(map, toggles.airTrafficSquawk7700);
+    setSquawk7600Visibility(map, toggles.airTrafficSquawk7600);
     setIssTrackerVisibility(map, toggles.issTracker);
     setRocketLaunchesVisibility(map, toggles.rocketLaunches);
   }, [
@@ -390,6 +409,8 @@ export function MapView() {
     toggles.carrierStrikeGroups,
     toggles.airTrafficCivilian,
     toggles.airTrafficMilitary,
+    toggles.airTrafficSquawk7700,
+    toggles.airTrafficSquawk7600,
     toggles.issTracker,
     toggles.rocketLaunches,
   ]);
@@ -818,7 +839,14 @@ export function MapView() {
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady || (!toggles.airTrafficCivilian && !toggles.airTrafficMilitary)) {
+    if (
+      !map ||
+      !mapReady ||
+      (!toggles.airTrafficCivilian &&
+        !toggles.airTrafficMilitary &&
+        !toggles.airTrafficSquawk7700 &&
+        !toggles.airTrafficSquawk7600)
+    ) {
       return;
     }
 
@@ -830,6 +858,8 @@ export function MapView() {
       ensureAirTrafficLayer(map);
       setCivilianAirTrafficVisibility(map, toggles.airTrafficCivilian);
       setMilitaryAirTrafficVisibility(map, toggles.airTrafficMilitary);
+      setSquawk7700Visibility(map, toggles.airTrafficSquawk7700);
+      setSquawk7600Visibility(map, toggles.airTrafficSquawk7600);
       cleanupHover = attachAirTrafficHoverTooltip(map);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to initialize air traffic layer");
@@ -849,6 +879,30 @@ export function MapView() {
         const military = payload.flights.filter((flight) => isMilitaryAircraftModel(flight.t)).length;
         setAirTrafficMilitaryCount(military);
         setAirTrafficCount(payload.flights.length - military);
+        const emergency = payload.flights
+          .filter((flight) => flight.squawk === "7700" || flight.squawk === "7600")
+          .slice(0, 8)
+          .map((flight) => {
+            const squawk: "7700" | "7600" = flight.squawk === "7700" ? "7700" : "7600";
+            return {
+              key: `${flight.hex}:${squawk}`,
+              hex: flight.hex.toUpperCase(),
+              callsign: (flight.flight || flight.r || flight.hex).trim(),
+              squawk,
+              lat: flight.lat,
+              lon: flight.lon,
+            };
+          });
+        setEmergencySquawkAlerts((prev) => {
+          const now = Date.now();
+          const previousByKey = new globalThis.Map(prev.map((alert) => [alert.key, alert]));
+
+          return emergency.map((alert) => {
+            const previous = previousByKey.get(alert.key);
+            const expiresAt = previous && previous.expiresAt > now ? previous.expiresAt : now + 30_000;
+            return { ...alert, expiresAt };
+          });
+        });
         setRefreshTimes((prev) => ({ ...prev, airTraffic: payload.fetchedAt }));
         if (payload.error) {
           setError(payload.error);
@@ -890,8 +944,30 @@ export function MapView() {
       }
       setAirTrafficCount(0);
       setAirTrafficMilitaryCount(0);
+      setEmergencySquawkAlerts([]);
     };
-  }, [mapReady, toggles.airTrafficCivilian, toggles.airTrafficMilitary]);
+  }, [
+    mapReady,
+    toggles.airTrafficCivilian,
+    toggles.airTrafficMilitary,
+    toggles.airTrafficSquawk7700,
+    toggles.airTrafficSquawk7600,
+  ]);
+
+  useEffect(() => {
+    if (emergencySquawkAlerts.length === 0) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      const now = Date.now();
+      setEmergencySquawkAlerts((prev) => prev.filter((alert) => alert.expiresAt > now));
+    }, 500);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [emergencySquawkAlerts.length]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1284,6 +1360,8 @@ export function MapView() {
       carrierStrikeGroups: next,
       airTrafficCivilian: next,
       airTrafficMilitary: next,
+      airTrafficSquawk7700: next,
+      airTrafficSquawk7600: next,
     }));
   };
 
@@ -1299,6 +1377,28 @@ export function MapView() {
   const handleThemeChange = (next: VisualTheme) => {
     setTheme(next);
     setPanelColor(THEME_PRESETS[next].panelColor);
+  };
+
+  const handleFocusEmergencyFlight = (alert: EmergencySquawkAlert) => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+
+    try {
+      map.flyTo({
+        center: [alert.lon, alert.lat],
+        zoom: Math.max(map.getZoom(), 6),
+        duration: 900,
+        essential: true,
+      });
+    } catch {
+      // ignore map transition failures during rebuilds
+    }
+  };
+
+  const handleDismissEmergencyFlight = (key: string) => {
+    setEmergencySquawkAlerts((prev) => prev.filter((alert) => alert.key !== key));
   };
 
   const renderTickerItems = (keyPrefix: string) =>
@@ -1385,6 +1485,33 @@ export function MapView() {
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
           />
+        </aside>
+      ) : null}
+      {emergencySquawkAlerts.length > 0 ? (
+        <aside className="squawk-alerts" aria-live="polite" aria-label="Emergency squawk alerts">
+          <div className="squawk-alerts-title">Emergency Squawk Alerts</div>
+          {emergencySquawkAlerts.map((alert) => {
+            const secondsLeft = Math.max(0, Math.ceil((alert.expiresAt - Date.now()) / 1000));
+            return (
+              <div
+                key={alert.key}
+                className={`squawk-alert-card ${alert.squawk === "7700" ? "squawk-alert-7700" : "squawk-alert-7600"}`}
+              >
+                <div className="squawk-alert-line">
+                  <strong>{alert.squawk}</strong> · {alert.callsign} · {alert.hex}
+                </div>
+                <div className="squawk-alert-meta">Auto-dismiss in {secondsLeft}s</div>
+                <div className="squawk-alert-actions">
+                  <button type="button" onClick={() => handleDismissEmergencyFlight(alert.key)}>
+                    Dismiss
+                  </button>
+                  <button type="button" onClick={() => handleFocusEmergencyFlight(alert)}>
+                    Take me
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </aside>
       ) : null}
       {stockTickerEnabled ? (

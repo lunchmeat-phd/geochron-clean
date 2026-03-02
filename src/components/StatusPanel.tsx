@@ -207,6 +207,8 @@ export function StatusPanel({
       items: [
         { key: "airTrafficCivilian", label: "Civilian Flights", icon: "✈️" },
         { key: "airTrafficMilitary", label: "Military Flights", icon: "🛩️" },
+        { key: "airTrafficSquawk7700", label: "Squawk 7700 (Emergency)", icon: "🚨" },
+        { key: "airTrafficSquawk7600", label: "Squawk 7600 (Comms Failure)", icon: "⚠️" },
         { key: "flightCorridors", label: "Air Traffic Corridors", icon: "🧭" },
         { key: "tfr", label: "Temporary Flight Restrictions", icon: "🚫" },
       ],
