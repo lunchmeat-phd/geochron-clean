@@ -6,30 +6,28 @@ import { ICONS } from "@/layers/icons";
 export const SUN_ANALEMMA_SOURCE_ID = "sun-analemma-source";
 export const SUN_ANALEMMA_LINE_LAYER_ID = "sun-analemma-line-layer";
 export const SUN_POSITION_LAYER_ID = "sun-position-layer";
-const ATLANTIC_CENTER_LON = -30;
 
 function normalizeLon(lon: number): number {
   return ((lon + 540) % 360) - 180;
 }
 
-function shiftLonToPacific(lon: number, offset: number): number {
-  return normalizeLon(lon + offset);
-}
+// Fixed reference time for the analemma figure-8: the subsolar point at 12:00 UTC across the
+// year, which sits near the prime meridian. Keeping it FIXED (not the current clock time) means
+// the figure-8 is a stationary reference and the live subsolar sun marker visibly sweeps across
+// it through the day, crossing it once daily — instead of the whole 8 drifting with the sun.
+const ANALEMMA_REFERENCE_UTC_HOUR = 12;
 
-function buildAnalemmaSegments(now: Date, lonOffset: number): number[][][] {
+function buildAnalemmaSegments(now: Date): number[][][] {
   const year = now.getUTCFullYear();
-  const h = now.getUTCHours();
-  const m = now.getUTCMinutes();
-  const s = now.getUTCSeconds();
 
   const points: [number, number][] = [];
   for (let day = 0; day < 366; day += 1) {
-    const date = new Date(Date.UTC(year, 0, 1 + day, h, m, s));
+    const date = new Date(Date.UTC(year, 0, 1 + day, ANALEMMA_REFERENCE_UTC_HOUR, 0, 0));
     if (date.getUTCFullYear() !== year) {
       break;
     }
     const sun = getSunPosition(date);
-    points.push([shiftLonToPacific(sun.longitude, lonOffset), sun.latitude]);
+    points.push([normalizeLon(sun.longitude), sun.latitude]);
   }
 
   const segments: number[][][] = [];
@@ -61,10 +59,13 @@ function buildAnalemmaSegments(now: Date, lonOffset: number): number[][][] {
 }
 
 function createSunAnalemmaCollection(now = new Date()): FeatureCollection<LineString | Point> {
-  const sun = getSunPosition(now);
-  // Re-center analemma each update so the current sun marker stays over the Pacific.
-  const lonOffset = ATLANTIC_CENTER_LON - sun.longitude;
-  const segments = buildAnalemmaSegments(now, lonOffset);
+  // The sun marker is today's point on the analemma (same reference time as the figure-8), so it
+  // sits ON the 8 and steps to the next spot each day, tracing the full figure over the year.
+  const today = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), ANALEMMA_REFERENCE_UTC_HOUR, 0, 0),
+  );
+  const sun = getSunPosition(today);
+  const segments = buildAnalemmaSegments(now);
 
   const lineFeatures = segments.map((coordinates, idx) => ({
     type: "Feature" as const,
@@ -86,7 +87,7 @@ function createSunAnalemmaCollection(now = new Date()): FeatureCollection<LineSt
     },
     geometry: {
       type: "Point" as const,
-      coordinates: [shiftLonToPacific(sun.longitude, lonOffset), sun.latitude],
+      coordinates: [normalizeLon(sun.longitude), sun.latitude],
     },
   };
 

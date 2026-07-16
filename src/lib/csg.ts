@@ -54,7 +54,7 @@ type GroupCatalogEntry = {
   navy: string;
 };
 
-type Observation = {
+export type Observation = {
   groupId: string;
   lon: number;
   lat: number;
@@ -128,6 +128,36 @@ const GROUP_CATALOG: GroupCatalogEntry[] = [
     groupId: "csg-cvn68",
     groupName: "Nimitz CSG",
     carrier: "USS Nimitz (CVN-68)",
+    navy: "United States Navy",
+  },
+  {
+    groupId: "csg-cvn69",
+    groupName: "Dwight D. Eisenhower CSG",
+    carrier: "USS Dwight D. Eisenhower (CVN-69)",
+    navy: "United States Navy",
+  },
+  {
+    groupId: "csg-cvn74",
+    groupName: "John C. Stennis CSG",
+    carrier: "USS John C. Stennis (CVN-74)",
+    navy: "United States Navy",
+  },
+  {
+    groupId: "csg-cvn75",
+    groupName: "Harry S. Truman CSG",
+    carrier: "USS Harry S. Truman (CVN-75)",
+    navy: "United States Navy",
+  },
+  {
+    groupId: "csg-cvn76",
+    groupName: "Ronald Reagan CSG",
+    carrier: "USS Ronald Reagan (CVN-76)",
+    navy: "United States Navy",
+  },
+  {
+    groupId: "csg-cvn78",
+    groupName: "Gerald R. Ford CSG",
+    carrier: "USS Gerald R. Ford (CVN-78)",
     navy: "United States Navy",
   },
 ];
