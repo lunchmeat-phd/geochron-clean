@@ -21,10 +21,12 @@ export function ensureFiberCablesLayer(map: Map): void {
       type: "line",
       source: FIBER_CABLES_SOURCE_ID,
       paint: {
-        "line-color": "#22d3ee",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 1, 0.9, 4, 1.9, 7, 2.8],
-        "line-opacity": 0.92,
-        "line-blur": 0.12,
+        // Dimmed: a muted teal at lower opacity so the cable web reads as background texture
+        // rather than dominating the map.
+        "line-color": "#0e7490",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 1, 0.7, 4, 1.4, 7, 2.1],
+        "line-opacity": 0.5,
+        "line-blur": 0.2,
       },
     });
   }

@@ -78,7 +78,7 @@ export function ensureAirTrafficLayer(map: Map): void {
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
         "icon-rotate": ["coalesce", ["get", "heading"], 0],
-        "icon-rotation-alignment": "map",
+        "icon-rotation-alignment": "viewport",
       },
     });
   }
@@ -100,7 +100,7 @@ export function ensureAirTrafficLayer(map: Map): void {
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
         "icon-rotate": ["coalesce", ["get", "heading"], 0],
-        "icon-rotation-alignment": "map",
+        "icon-rotation-alignment": "viewport",
       },
     });
   }
@@ -112,15 +112,12 @@ export function ensureAirTrafficLayer(map: Map): void {
       source: AIR_TRAFFIC_SOURCE_ID,
       filter: ["==", ["get", "squawk"], "7700"],
       layout: {
-        "icon-image": ICONS.aircraftMilitary,
-        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 4.4, 4, 3.6, 8, 2.8],
+        "icon-image": ICONS.aircraftEmergency,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 1.9, 4, 1.5, 8, 1.15],
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
         "icon-rotate": ["coalesce", ["get", "heading"], 0],
-        "icon-rotation-alignment": "map",
-      },
-      paint: {
-        "icon-color": "#ef4444",
+        "icon-rotation-alignment": "viewport",
       },
     });
   }
@@ -132,15 +129,12 @@ export function ensureAirTrafficLayer(map: Map): void {
       source: AIR_TRAFFIC_SOURCE_ID,
       filter: ["==", ["get", "squawk"], "7600"],
       layout: {
-        "icon-image": ICONS.aircraftMilitary,
-        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 4.0, 4, 3.3, 8, 2.6],
+        "icon-image": ICONS.aircraftComms,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 1.75, 4, 1.4, 8, 1.1],
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
         "icon-rotate": ["coalesce", ["get", "heading"], 0],
-        "icon-rotation-alignment": "map",
-      },
-      paint: {
-        "icon-color": "#f59e0b",
+        "icon-rotation-alignment": "viewport",
       },
     });
   }

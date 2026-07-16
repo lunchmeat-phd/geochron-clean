@@ -1,4 +1,5 @@
 import type { GeoJSONSource, Map } from "maplibre-gl";
+import { ICONS } from "@/layers/icons";
 
 type VolcanoApiResponse = {
   data: GeoJSON.FeatureCollection<GeoJSON.Point, Record<string, unknown>>;
@@ -24,14 +25,13 @@ export function ensureVolcanoLayer(map: Map): void {
   if (!map.getLayer(VOLCANO_LAYER_ID)) {
     map.addLayer({
       id: VOLCANO_LAYER_ID,
-      type: "circle",
+      type: "symbol",
       source: VOLCANO_SOURCE_ID,
-      paint: {
-        "circle-color": "#ef4444",
-        "circle-radius": ["interpolate", ["linear"], ["zoom"], 1, 3, 4, 5.2, 7, 7.2],
-        "circle-opacity": 0.85,
-        "circle-stroke-color": "#7f1d1d",
-        "circle-stroke-width": 1.2,
+      layout: {
+        "icon-image": ICONS.volcano,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 0.5, 4, 0.72, 7, 0.95],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
       },
     });
   }

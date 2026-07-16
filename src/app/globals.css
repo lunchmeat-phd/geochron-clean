@@ -14,6 +14,8 @@ body,
   margin: 0;
   padding: 0;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  /* Clip the burn-in over-scale of .map-shell so it never produces scrollbars. */
+  overflow: hidden;
 }
 
 .map-shell {
@@ -21,8 +23,21 @@ body,
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  transition: filter 120ms linear;
+  transition: filter 1200ms linear;
   background: #000;
+}
+
+.map-shell.cursor-hidden {
+  cursor: none;
+}
+
+.auto-dim-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  cursor: pointer;
 }
 
 .map-container {
@@ -30,25 +45,6 @@ body,
   inset: 0;
   z-index: 1;
   transition: filter 180ms ease;
-}
-
-.globe-starfield {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.8) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 30% 60%, rgba(255, 255, 255, 0.65) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.75) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 85% 72%, rgba(255, 255, 255, 0.6) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 55% 85%, rgba(255, 255, 255, 0.7) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 18% 82%, rgba(255, 255, 255, 0.55) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 40% 15%, rgba(255, 255, 255, 0.45) 0 0.8px, transparent 1.3px),
-    radial-gradient(circle at 62% 48%, rgba(255, 255, 255, 0.4) 0 0.8px, transparent 1.3px),
-    radial-gradient(circle at 92% 18%, rgba(255, 255, 255, 0.35) 0 0.8px, transparent 1.3px),
-    radial-gradient(circle at 8% 52%, rgba(255, 255, 255, 0.45) 0 0.8px, transparent 1.3px),
-    linear-gradient(to bottom, #02060f 0%, #000000 60%, #02050b 100%);
 }
 
 .stealth-veil {
@@ -554,15 +550,6 @@ body,
   text-align: right;
 }
 
-.view-mode-row {
-  margin-top: 8px;
-}
-
-.view-mode-row label {
-  display: block;
-  margin-bottom: 4px;
-}
-
 .panel-color-preset {
   width: 20px;
   height: 20px;
@@ -775,6 +762,148 @@ body,
   background: rgba(15, 23, 42, 0.9);
 }
 
+.launch-panel {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 5;
+  width: min(300px, calc(100vw - 32px));
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  background: rgba(2, 6, 23, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #e2e8f0;
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.28);
+  backdrop-filter: blur(2px);
+}
+
+.launch-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.launch-panel-header button,
+.launch-reopen-btn {
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: rgba(15, 23, 42, 0.9);
+  color: #e2e8f0;
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.launch-reopen-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 5;
+  padding: 6px 12px;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.3);
+}
+
+.launch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.launch-row {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.launch-row-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.launch-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.launch-status {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.launch-status-go {
+  background: rgba(34, 197, 94, 0.18);
+  color: #4ade80;
+}
+
+.launch-status-tbd {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+
+.launch-status-other {
+  background: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+}
+
+.launch-countdown {
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: #f8fafc;
+}
+
+.launch-meta {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+.launch-net {
+  margin-top: 1px;
+  font-size: 10.5px;
+  color: #94a3b8;
+}
+
+.launch-empty,
+.launch-cached {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 4px 0 0;
+}
+
+.launch-panel-stealth {
+  background: #000000;
+  border-color: rgba(120, 120, 120, 0.5);
+  color: #9ca3af;
+}
+
+.launch-panel-stealth .launch-row {
+  background: rgba(10, 10, 10, 0.8);
+  border-color: rgba(75, 85, 99, 0.4);
+}
+
+.launch-panel-stealth .launch-countdown {
+  color: #cbd5e1;
+}
+
 .stock-ticker {
   position: absolute;
   left: 0;
@@ -811,12 +940,23 @@ body,
 }
 
 .stock-ticker-track {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   white-space: nowrap;
   min-width: max-content;
   animation: stock-ticker-scroll 42s linear infinite;
   will-change: transform;
+}
+
+/* Two identical copies, each at least a viewport wide, so translateX(-50%) always lands on an
+   identical frame — the loop stays seamless even when only a few quotes have loaded. When many
+   quotes are present the content exceeds 100vw and copies size to their content instead. */
+.stock-ticker-copy {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 100vw;
+  justify-content: space-around;
 }
 
 .stock-item {

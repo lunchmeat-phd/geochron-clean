@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import type { LayerToggleState, RefreshTimes } from "@/layers";
 
 type StatusPanelProps = {
@@ -15,11 +16,10 @@ type StatusPanelProps = {
   onPanelColorChange: (next: string) => void;
   brightnessPercent: number;
   onBrightnessChange: (next: number) => void;
+  autoDim: boolean;
+  onAutoDimChange: (next: boolean) => void;
   stockTickerEnabled: boolean;
   onStockTickerEnabledChange: (next: boolean) => void;
-  viewMode: "map" | "globe";
-  onViewModeChange: (next: "map" | "globe") => void;
-  utcNow: string;
   refreshTimes: RefreshTimes;
   quakeCount: number;
   shippingLaneCount: number;
@@ -110,6 +110,23 @@ function formatUtcHeader(value: string): { date: string; time: string } {
   return { date, time };
 }
 
+// Owns its own 1-second tick so only this small subtree re-renders every second, instead of
+// the whole 1,500-line MapView (which is what happened when the clock lived there).
+// Starts as null so the server render and first client render agree (a live Date() would
+// differ between them and trigger a hydration mismatch); the real time appears after mount.
+function LiveClock({ children }: { children: (now: Date) => ReactNode }): JSX.Element | null {
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  if (!now) {
+    return null;
+  }
+  return <>{children(now)}</>;
+}
+
 function textColorForHex(hex: string): string {
   const raw = hex.replace("#", "");
   if (!/^[0-9a-fA-F]{6}$/.test(raw)) {
@@ -134,11 +151,10 @@ export function StatusPanel({
   onPanelColorChange,
   brightnessPercent,
   onBrightnessChange,
+  autoDim,
+  onAutoDimChange,
   stockTickerEnabled,
   onStockTickerEnabledChange,
-  viewMode,
-  onViewModeChange,
-  utcNow,
   refreshTimes,
   quakeCount,
   shippingLaneCount,
@@ -176,8 +192,6 @@ export function StatusPanel({
   const idleTimerRef = useRef<number | null>(null);
   const grayscalePresets = ["#f9fafb", "#e5e7eb", "#d1d5db", "#9ca3af", "#4b5563"];
   const panelTextColor = textColorForHex(panelColor);
-  const localHeader = formatLocalHeader(utcNow);
-  const utcHeader = formatUtcHeader(utcNow);
   const layerCategories: LayerCategory[] = [
     {
       id: "core",
@@ -226,7 +240,7 @@ export function StatusPanel({
       id: "defense",
       title: "Defense & Space",
       items: [
-        { key: "militaryBases", label: "Military Bases", icon: "🛡️", showBaseLegend: true },
+        { key: "militaryBases", label: "Key Military Installations", icon: "🛡️", showBaseLegend: true },
         { key: "carrierStrikeGroups", label: "Carrier Strike Groups (Estimated)", icon: "🚢" },
         { key: "issTracker", label: "ISS Tracker", icon: "🛰️" },
         { key: "rocketLaunches", label: "Rocket Launches (last/next 24h)", icon: "🚀" },
@@ -308,8 +322,18 @@ export function StatusPanel({
       }}
     >
       <h1>World Clock Plus</h1>
-      <p className="toolbar-clock">Local {localHeader.date} {localHeader.time}</p>
-      <p className="toolbar-clock">UTC {utcHeader.date} {utcHeader.time}</p>
+      <LiveClock>
+        {(now) => {
+          const localHeader = formatLocalHeader(now.toISOString());
+          const utcHeader = formatUtcHeader(now.toISOString());
+          return (
+            <>
+              <p className="toolbar-clock">Local {localHeader.date} {localHeader.time}</p>
+              <p className="toolbar-clock">UTC {utcHeader.date} {utcHeader.time}</p>
+            </>
+          );
+        }}
+      </LiveClock>
       <div className="panel-top-row">
         <button
           type="button"
@@ -386,6 +410,14 @@ export function StatusPanel({
             <span>{brightnessPercent}%</span>
           </div>
         </div>
+        <label className="auto-dim-row">
+          <input
+            type="checkbox"
+            checked={autoDim}
+            onChange={(event) => onAutoDimChange(event.target.checked)}
+          />
+          Auto-dim at night
+        </label>
         <label>
           <input
             type="checkbox"
@@ -394,18 +426,6 @@ export function StatusPanel({
           />
           Stock Ticker
         </label>
-        <div className="view-mode-row">
-          <label htmlFor="view-mode-select">View</label>
-          <select
-            id="view-mode-select"
-            className="theme-select"
-            value={viewMode}
-            onChange={(event) => onViewModeChange(event.target.value as "map" | "globe")}
-          >
-            <option value="map">Flat Map (2D)</option>
-            <option value="globe">Interactive Globe (3D)</option>
-          </select>
-        </div>
       </section>
 
       <section>
@@ -471,7 +491,7 @@ export function StatusPanel({
         </div>
         {statusCollapsed ? null : (
           <>
-            <p>UTC now: {utcNow}</p>
+            <LiveClock>{(now) => <p>UTC now: {now.toISOString()}</p>}</LiveClock>
             <p>Major cities: {cityCount}</p>
             <p>Country profiles: {countryCount}</p>
             <p>Earthquakes: {quakeCount} events</p>

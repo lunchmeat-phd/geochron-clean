@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { readDiskCache, writeDiskCache } from "@/lib/diskCache";
+
+const DISK_KEY = "stocks";
 
 type StockQuote = {
   symbol: string;
@@ -18,101 +21,178 @@ type CacheRecord = {
   expiresAt: number;
 };
 
+// Yahoo Finance symbols. Indices use a caret prefix (URL-encoded as %5E).
 const SYMBOLS: Array<{ code: string; label: string }> = [
-  { code: "%5Espx", label: "S&P 500" },
-  { code: "%5Edji", label: "Dow Jones" },
-  { code: "%5Ehsi", label: "Hang Seng" },
-  { code: "spy.us", label: "SPY" },
-  { code: "qqq.us", label: "QQQ" },
-  { code: "aapl.us", label: "AAPL" },
-  { code: "msft.us", label: "MSFT" },
-  { code: "nvda.us", label: "NVDA" },
-  { code: "amzn.us", label: "AMZN" },
-  { code: "meta.us", label: "META" },
-  { code: "googl.us", label: "GOOGL" },
-  { code: "tsla.us", label: "TSLA" },
-  { code: "vea.us", label: "VEA (Developed Mkts)" },
-  { code: "eem.us", label: "EEM (Emerging Mkts)" },
-  { code: "ewj.us", label: "EWJ (Japan)" },
-  { code: "ewu.us", label: "EWU (UK)" },
-  { code: "ewg.us", label: "EWG (Germany)" },
+  { code: "^GSPC", label: "S&P 500" },
+  { code: "^DJI", label: "Dow Jones" },
+  { code: "^IXIC", label: "Nasdaq" },
+  { code: "^HSI", label: "Hang Seng" },
+  { code: "SPY", label: "SPY" },
+  { code: "QQQ", label: "QQQ" },
+  { code: "AAPL", label: "AAPL" },
+  { code: "MSFT", label: "MSFT" },
+  { code: "NVDA", label: "NVDA" },
+  { code: "AMZN", label: "AMZN" },
+  { code: "META", label: "META" },
+  { code: "GOOGL", label: "GOOGL" },
+  { code: "TSLA", label: "TSLA" },
+  { code: "VEA", label: "VEA (Developed Mkts)" },
+  { code: "EEM", label: "EEM (Emerging Mkts)" },
+  { code: "EWJ", label: "EWJ (Japan)" },
+  { code: "EWU", label: "EWU (UK)" },
+  { code: "EWG", label: "EWG (Germany)" },
 ];
 
-const TTL_MS = 60_000;
+// Yahoo rate-limits aggressively by IP, so cache generously — a stock ticker on an
+// ambient wall display does not need sub-minute freshness.
+const TTL_MS = 5 * 60_000;
+// Browser-like UA; Yahoo is far more likely to 429/deny bare requests.
+const YAHOO_UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36";
+
 let cache: CacheRecord | null = null;
 
-function toNumber(value: string): number | null {
-  const trimmed = value.trim();
-  if (!trimmed || trimmed === "N/D") {
+const LABEL_BY_CODE = new Map(SYMBOLS.map((entry) => [entry.code, entry]));
+
+function changePercentFrom(price: unknown, prevClose: unknown): number | null {
+  const p = Number(price);
+  const prev = Number(prevClose);
+  if (!Number.isFinite(p) || !Number.isFinite(prev) || prev === 0) {
     return null;
   }
-  const n = Number(trimmed);
-  return Number.isFinite(n) ? n : null;
+  return ((p - prev) / prev) * 100;
 }
 
-function parseSingleQuote(csv: string): Omit<StockQuote, "symbol"> | null {
-  const lines = csv
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
+type SparkMeta = {
+  regularMarketPrice?: number;
+  previousClose?: number;
+  chartPreviousClose?: number;
+};
 
-  if (lines.length < 2) {
-    return null;
+// Preferred path: one batched request for every symbol via Yahoo's spark endpoint.
+async function fetchViaSpark(): Promise<Map<string, StockQuote>> {
+  const symbolParam = SYMBOLS.map((entry) => encodeURIComponent(entry.code)).join(",");
+  const url = `https://query1.finance.yahoo.com/v8/finance/spark?symbols=${symbolParam}&range=1d&interval=1d`;
+
+  const upstream = await fetch(url, {
+    cache: "no-store",
+    headers: { "User-Agent": YAHOO_UA, Accept: "application/json" },
+    signal: AbortSignal.timeout(12_000),
+  });
+
+  if (!upstream.ok) {
+    throw new Error(`Yahoo spark failed (${upstream.status})`);
   }
 
-  const cols = lines[1].split(",");
-  if (cols.length < 7) {
-    return null;
-  }
-
-  const open = toNumber(cols[3]);
-  const close = toNumber(cols[6]);
-  if (close === null) {
-    return null;
-  }
-
-  let changePercent: number | null = null;
-  if (open !== null && open > 0) {
-    changePercent = ((close - open) / open) * 100;
-  }
-
-  return {
-    price: close,
-    changePercent,
+  const json = (await upstream.json()) as {
+    spark?: { result?: Array<{ symbol?: string; response?: Array<{ meta?: SparkMeta }> }> };
   };
+
+  const results = json.spark?.result ?? [];
+  const quotes = new Map<string, StockQuote>();
+
+  for (const result of results) {
+    const code = result.symbol;
+    if (!code) {
+      continue;
+    }
+    const entry = LABEL_BY_CODE.get(code);
+    const meta = result.response?.[0]?.meta;
+    if (!entry || !meta) {
+      continue;
+    }
+    const price = Number(meta.regularMarketPrice);
+    if (!Number.isFinite(price)) {
+      continue;
+    }
+    quotes.set(code, {
+      symbol: entry.label,
+      price,
+      changePercent: changePercentFrom(price, meta.chartPreviousClose ?? meta.previousClose),
+    });
+  }
+
+  return quotes;
 }
 
-async function fetchQuotes(): Promise<StocksApiResponse> {
-  const quoteResults = await Promise.allSettled(
-    SYMBOLS.map(async (entry) => {
-      const url = `https://stooq.com/q/l/?s=${entry.code}&f=sd2t2ohlcv&h&e=csv`;
+// Fallback path: per-symbol chart requests, only for symbols still missing.
+async function fetchViaChart(codes: string[]): Promise<Map<string, StockQuote>> {
+  const quotes = new Map<string, StockQuote>();
+
+  const settled = await Promise.allSettled(
+    codes.map(async (code) => {
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(
+        code,
+      )}?interval=1d&range=1d`;
       const upstream = await fetch(url, {
         cache: "no-store",
+        headers: { "User-Agent": YAHOO_UA, Accept: "application/json" },
         signal: AbortSignal.timeout(12_000),
       });
-
       if (!upstream.ok) {
         return null;
       }
-
-      const text = await upstream.text();
-      const parsed = parseSingleQuote(text);
-      if (!parsed) {
+      const json = (await upstream.json()) as {
+        chart?: { result?: Array<{ meta?: SparkMeta }> };
+      };
+      const meta = json.chart?.result?.[0]?.meta;
+      const entry = LABEL_BY_CODE.get(code);
+      if (!meta || !entry) {
         return null;
       }
-
+      const price = Number(meta.regularMarketPrice);
+      if (!Number.isFinite(price)) {
+        return null;
+      }
       return {
-        symbol: entry.label,
-        price: parsed.price,
-        changePercent: parsed.changePercent,
-      } satisfies StockQuote;
+        code,
+        quote: {
+          symbol: entry.label,
+          price,
+          changePercent: changePercentFrom(price, meta.chartPreviousClose ?? meta.previousClose),
+        } satisfies StockQuote,
+      };
     }),
   );
 
-  const quotes = quoteResults
-    .filter((result): result is PromiseFulfilledResult<StockQuote | null> => result.status === "fulfilled")
-    .map((result) => result.value)
-    .filter((quote): quote is StockQuote => quote !== null);
+  for (const result of settled) {
+    if (result.status === "fulfilled" && result.value) {
+      quotes.set(result.value.code, result.value.quote);
+    }
+  }
+
+  return quotes;
+}
+
+async function fetchQuotes(): Promise<StocksApiResponse> {
+  const collected = new Map<string, StockQuote>();
+
+  try {
+    const spark = await fetchViaSpark();
+    for (const [code, quote] of spark) {
+      collected.set(code, quote);
+    }
+  } catch {
+    // Spark unavailable — fall through to the per-symbol chart path below.
+  }
+
+  const missing = SYMBOLS.map((entry) => entry.code).filter((code) => !collected.has(code));
+  if (missing.length > 0) {
+    try {
+      const chart = await fetchViaChart(missing);
+      for (const [code, quote] of chart) {
+        collected.set(code, quote);
+      }
+    } catch {
+      // Ignore; we return whatever we managed to collect.
+    }
+  }
+
+  // Preserve the configured display order.
+  const quotes = SYMBOLS.map((entry) => collected.get(entry.code)).filter(
+    (quote): quote is StockQuote => quote !== undefined,
+  );
+
   if (quotes.length === 0) {
     throw new Error("Stocks source returned no quotes");
   }
@@ -130,30 +210,44 @@ export async function GET() {
   if (cache && now < cache.expiresAt) {
     return NextResponse.json(cache.payload, {
       headers: {
-        "Cache-Control": "public, max-age=30, s-maxage=30",
+        "Cache-Control": "public, max-age=60, s-maxage=60",
       },
     });
   }
 
   try {
     const payload = await fetchQuotes();
+    // If a rate-limit blip trimmed the batch, cache only briefly so the ticker
+    // recovers quickly instead of showing a half-empty set for the full TTL.
+    const isComplete = payload.quotes.length >= SYMBOLS.length;
     cache = {
       payload,
-      expiresAt: now + TTL_MS,
+      expiresAt: now + (isComplete ? TTL_MS : 60_000),
     };
+    if (isComplete) {
+      void writeDiskCache<StocksApiResponse>(DISK_KEY, payload);
+    }
 
     return NextResponse.json(payload, {
       headers: {
-        "Cache-Control": "public, max-age=30, s-maxage=30",
+        "Cache-Control": "public, max-age=60, s-maxage=60",
       },
     });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Stocks fetch failed";
+
     if (cache) {
       return NextResponse.json({
         ...cache.payload,
         stale: true,
-        error: error instanceof Error ? error.message : "Stocks fetch failed",
+        error: message,
       } satisfies StocksApiResponse);
+    }
+
+    // Cold start with upstream down — fall back to last-good quotes persisted on disk.
+    const disk = await readDiskCache<StocksApiResponse>(DISK_KEY);
+    if (disk) {
+      return NextResponse.json({ ...disk, stale: true, error: message } satisfies StocksApiResponse);
     }
 
     return NextResponse.json(
@@ -161,7 +255,7 @@ export async function GET() {
         quotes: [],
         fetchedAt: new Date().toISOString(),
         stale: true,
-        error: error instanceof Error ? error.message : "Stocks fetch failed",
+        error: message,
       } satisfies StocksApiResponse,
       { status: 200 },
     );

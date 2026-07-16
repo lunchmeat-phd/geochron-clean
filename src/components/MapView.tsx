@@ -92,6 +92,7 @@ import {
 import type { UsgsEarthquakeCollection } from "@/lib/earthquakes";
 import { isMilitaryAircraftModel } from "@/lib/military";
 import { StatusPanel } from "@/components/StatusPanel";
+import { LaunchPanel } from "@/components/LaunchPanel";
 
 type StockQuote = {
   symbol: string;
@@ -161,14 +162,22 @@ const DEFAULT_TOGGLES: LayerToggleState = {
   airTrafficSquawk7600: true,
 };
 
-const ISS_LIVE_FEED_URL =
-  "https://www.youtube-nocookie.com/embed/live_stream?channel=UCLA_DiR1FfKNvjuUpBHmylQ&autoplay=1&mute=1&controls=1&rel=0";
-const ISS_LIVE_FALLBACK_URL = "https://www.youtube.com/watch?v=21X5lGlDOfg";
+// Resolved at runtime from /api/iss-stream (the old /embed/live_stream?channel= form was
+// deprecated by YouTube). Falls back to a channel embed if resolution has not completed yet.
+const ISS_FALLBACK_CHANNEL_ID = "UCLA_DiR1FfKNvjuUpBHmylQ";
+const ISS_LIVE_FALLBACK_URL = `https://www.youtube.com/channel/${ISS_FALLBACK_CHANNEL_ID}/live`;
 
-function createBaseStyle(viewMode: "map" | "globe"): maplibregl.StyleSpecification {
+function buildIssEmbedUrl(videoId: string | null): string {
+  if (videoId) {
+    return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=1&rel=0&playsinline=1`;
+  }
+  // Best-effort fallback while the live video ID is still resolving.
+  return `https://www.youtube-nocookie.com/embed/live_stream?channel=${ISS_FALLBACK_CHANNEL_ID}&autoplay=1&mute=1&controls=1&rel=0`;
+}
+
+function createBaseStyle(): maplibregl.StyleSpecification {
   return {
     version: 8,
-    ...(viewMode === "globe" ? ({ projection: { type: "globe" } } as Record<string, unknown>) : {}),
     sources: {
       satellite: {
         type: "raster",
@@ -194,7 +203,6 @@ export function MapView() {
 
   const [toggles, setToggles] = useState<LayerToggleState>(DEFAULT_TOGGLES);
   const [refreshTimes, setRefreshTimes] = useState<RefreshTimes>({});
-  const [utcNow, setUtcNow] = useState("—");
   const [cityCount, setCityCount] = useState(0);
   const [countryCount, setCountryCount] = useState(0);
   const [quakeCount, setQuakeCount] = useState(0);
@@ -217,27 +225,99 @@ export function MapView() {
   const [csgAverageConfidence, setCsgAverageConfidence] = useState(0);
   const [panelColor, setPanelColor] = useState("#ffffff");
   const [brightnessPercent, setBrightnessPercent] = useState(100);
+  const [autoDim, setAutoDim] = useState(true);
+  const [dimFactor, setDimFactor] = useState(1);
+  const [cursorHidden, setCursorHidden] = useState(false);
   const [theme, setTheme] = useState<VisualTheme>("classic");
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [stockTickerEnabled, setStockTickerEnabled] = useState(true);
-  const [viewMode, setViewMode] = useState<"map" | "globe">("map");
   const [stockQuotes, setStockQuotes] = useState<StockQuote[]>([]);
   const [stockError, setStockError] = useState<string | null>(null);
   const [emergencySquawkAlerts, setEmergencySquawkAlerts] = useState<EmergencySquawkAlert[]>([]);
+  const [issVideoId, setIssVideoId] = useState<string | null>(null);
   const [quakeStale, setQuakeStale] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [earthquakeData, setEarthquakeDataState] = useState<UsgsEarthquakeCollection | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
-  const style = useMemo(() => createBaseStyle(viewMode), [viewMode]);
+  const style = useMemo(() => createBaseStyle(), []);
 
+  // On an always-on display a transient feed failure must never leave a stale error banner
+  // stuck on screen. Any error auto-clears 45s after it was last set; a successful refresh
+  // that calls setError(null) still clears it immediately.
   useEffect(() => {
-    setUtcNow(new Date().toISOString());
-    const tick = window.setInterval(() => {
-      setUtcNow(new Date().toISOString());
-    }, 1000);
+    if (!error) {
+      return;
+    }
+    const timer = window.setTimeout(() => setError(null), 45_000);
+    return () => window.clearTimeout(timer);
+  }, [error]);
 
-    return () => window.clearInterval(tick);
+  // Nightly full-page reload flushes any slow memory/GPU creep from a 24/7 unattended run.
+  // Scheduled for the small hours (local time) when nobody is looking at the wall.
+  useEffect(() => {
+    const RELOAD_HOUR_LOCAL = 4;
+
+    const msUntilNextReload = () => {
+      const now = new Date();
+      const next = new Date(now);
+      next.setHours(RELOAD_HOUR_LOCAL, 0, 0, 0);
+      if (next.getTime() <= now.getTime()) {
+        next.setDate(next.getDate() + 1);
+      }
+      return next.getTime() - now.getTime();
+    };
+
+    const timer = window.setTimeout(() => {
+      window.location.reload();
+    }, msUntilNextReload());
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  // Auto-dimming: gently lower brightness in the evening/night and restore it by day, so the
+  // wall display isn't glaring at 2 AM. Composes with the manual brightness slider rather than
+  // overriding it. The curve peaks midday (factor 1.0) and bottoms out overnight (~0.55).
+  useEffect(() => {
+    if (!autoDim) {
+      setDimFactor(1);
+      return;
+    }
+
+    const computeFactor = () => {
+      const hour = new Date().getHours() + new Date().getMinutes() / 60;
+      // Cosine curve peaking at 14:00 local, lowest around 02:00.
+      const phase = ((hour - 14 + 24) % 24) / 24; // 0 at 14:00
+      const cosine = Math.cos(phase * 2 * Math.PI); // 1 at 14:00, -1 at 02:00
+      const factor = 0.775 + 0.225 * cosine; // ranges ~0.55 (night) .. 1.0 (midday)
+      setDimFactor(Math.round(factor * 100) / 100);
+    };
+
+    computeFactor();
+    const interval = window.setInterval(computeFactor, 5 * 60_000);
+    return () => window.clearInterval(interval);
+  }, [autoDim]);
+
+  // Auto-hide the mouse cursor after a few idle seconds so a forgotten pointer doesn't sit on
+  // the display. Any movement brings it back.
+  useEffect(() => {
+    let idleTimer: number | null = null;
+    const hideAfterIdle = () => {
+      if (idleTimer !== null) {
+        window.clearTimeout(idleTimer);
+      }
+      setCursorHidden(false);
+      idleTimer = window.setTimeout(() => setCursorHidden(true), 4_000);
+    };
+
+    hideAfterIdle();
+    window.addEventListener("mousemove", hideAfterIdle);
+    return () => {
+      if (idleTimer !== null) {
+        window.clearTimeout(idleTimer);
+      }
+      window.removeEventListener("mousemove", hideAfterIdle);
+    };
   }, []);
 
   useEffect(() => {
@@ -252,10 +332,12 @@ export function MapView() {
       zoom: 1.5,
       minZoom: 0.6,
       maxZoom: 8,
-      maxPitch: 80,
-      pitchWithRotate: true,
-      dragRotate: true,
-      touchPitch: true,
+      // Flat, north-up ambient display: no pitch or rotation. Disabling these also avoids the
+      // map-space rotation/pitch render paths implicated in an intermittent MapLibre crash.
+      maxPitch: 0,
+      pitchWithRotate: false,
+      dragRotate: false,
+      touchPitch: false,
     });
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "top-right");
@@ -264,20 +346,27 @@ export function MapView() {
       setError(message);
     });
 
+    // If a symbol layer ever needs an icon image that isn't ready on the render thread yet
+    // (a cold-load race that otherwise crashes MapLibre's renderer with a "bind" TypeError),
+    // supply a transparent placeholder so rendering continues; the real icon replaces it once
+    // ensureMapIcons has registered it.
+    map.on("styleimagemissing", (event) => {
+      const id = event.id;
+      if (id && !map.hasImage(id)) {
+        try {
+          map.addImage(id, { width: 1, height: 1, data: new Uint8Array(4) });
+        } catch {
+          // ignore — another handler may have added it already
+        }
+      }
+    });
+
     map.on("load", () => {
       setMapReady(true);
-      if (viewMode === "globe") {
-        try {
-          map.easeTo({ center: [0, 8], pitch: 0, bearing: 0, zoom: 0.9, duration: 900 });
-        } catch (err) {
-          setError(err instanceof Error ? err.message : "Failed to initialize globe view");
-        }
-      } else {
-        try {
-          map.easeTo({ center: [0, 12], pitch: 0, bearing: 0, zoom: 1.5, duration: 500 });
-        } catch {
-          // no-op
-        }
+      try {
+        map.easeTo({ center: [0, 12], pitch: 0, bearing: 0, zoom: 1.5, duration: 500 });
+      } catch {
+        // no-op
       }
       const safeRun = (fn: () => void) => {
         try {
@@ -357,7 +446,7 @@ export function MapView() {
       map.remove();
       mapRef.current = null;
     };
-  }, [style, viewMode]);
+  }, [style]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1130,6 +1219,39 @@ export function MapView() {
   }, [mapReady, toggles.issTracker]);
 
   useEffect(() => {
+    if (!toggles.issTracker) {
+      return;
+    }
+
+    let active = true;
+
+    const resolveStream = async () => {
+      try {
+        const response = await fetch("/api/iss-stream", { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`ISS stream endpoint failed (${response.status})`);
+        }
+        const payload = (await response.json()) as { videoId: string | null };
+        if (!active) {
+          return;
+        }
+        setIssVideoId(payload.videoId);
+      } catch {
+        // Keep whatever we had; the iframe falls back to the channel embed.
+      }
+    };
+
+    void resolveStream();
+    // Live IDs change only when the stream restarts; re-check occasionally.
+    const interval = window.setInterval(resolveStream, 15 * 60_000);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [toggles.issTracker]);
+
+  useEffect(() => {
     if (!mapReady) {
       return;
     }
@@ -1418,8 +1540,12 @@ export function MapView() {
   const isStealthTheme = theme === "stealth";
 
   return (
-    <main className={`map-shell map-theme-${theme}${isStealthTheme ? " stealth-mode" : ""}`} style={{ filter: `brightness(${brightnessPercent}%)` }}>
-      {viewMode === "globe" ? <div className="globe-starfield" aria-hidden="true" /> : null}
+    <main
+      className={`map-shell map-theme-${theme}${isStealthTheme ? " stealth-mode" : ""}${cursorHidden ? " cursor-hidden" : ""}`}
+      style={{
+        filter: `brightness(${Math.round(brightnessPercent * dimFactor)}%)`,
+      }}
+    >
       <div
         ref={containerRef}
         className="map-container"
@@ -1439,11 +1565,10 @@ export function MapView() {
         onPanelColorChange={handlePanelColorChange}
         brightnessPercent={brightnessPercent}
         onBrightnessChange={handleBrightnessChange}
+        autoDim={autoDim}
+        onAutoDimChange={setAutoDim}
         stockTickerEnabled={stockTickerEnabled}
         onStockTickerEnabledChange={setStockTickerEnabled}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        utcNow={utcNow}
         refreshTimes={refreshTimes}
         cityCount={cityCount}
         countryCount={countryCount}
@@ -1468,6 +1593,7 @@ export function MapView() {
         quakeStale={quakeStale}
         error={error}
       />
+      <LaunchPanel theme={theme} />
       {toggles.issTracker ? (
         <aside className={`iss-feed-panel iss-feed-panel-theme-${theme}${isStealthTheme ? " iss-feed-panel-stealth" : ""}`} aria-label="Live ISS Camera Feed">
           <div className="iss-feed-title">
@@ -1478,7 +1604,7 @@ export function MapView() {
           </div>
           <iframe
             title="ISS live camera"
-            src={ISS_LIVE_FEED_URL}
+            src={buildIssEmbedUrl(issVideoId)}
             className="iss-feed-frame"
             loading="lazy"
             referrerPolicy="strict-origin-when-cross-origin"
@@ -1519,8 +1645,8 @@ export function MapView() {
           <div className="stock-ticker-track">
             {stockQuotes.length > 0 ? (
               <>
-                {renderTickerItems("a")}
-                {renderTickerItems("b")}
+                <div className="stock-ticker-copy">{renderTickerItems("a")}</div>
+                <div className="stock-ticker-copy">{renderTickerItems("b")}</div>
               </>
             ) : (
               <span className="stock-item stock-neutral">

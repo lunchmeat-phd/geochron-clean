@@ -86,201 +86,123 @@ type FusedGroup = {
   sourceUrl: string;
 };
 
+// Real US carrier deployments sourced from the USNI News Fleet and Marine Tracker.
+// Positions are the APPROXIMATE operating areas described in prose (e.g. "Philippine Sea"),
+// not precise coordinates — the uncertainty circle on the map conveys that. To refresh,
+// read the latest weekly tracker and update REPORT_DATE, REPORT_URL, and the coordinates.
+const REPORT_DATE = "2026-07-13T12:00:00Z";
+const REPORT_URL = "https://news.usni.org/2026/07/13/usni-news-fleet-and-marine-tracker-july-13-2026";
+
 const GROUP_CATALOG: GroupCatalogEntry[] = [
   {
-    groupId: "csg-cvn78",
-    groupName: "Carrier Strike Group 12",
-    carrier: "USS Gerald R. Ford (CVN-78)",
+    groupId: "csg-cvn73",
+    groupName: "George Washington CSG",
+    carrier: "USS George Washington (CVN-73)",
     navy: "United States Navy",
   },
   {
     groupId: "csg-cvn71",
-    groupName: "Carrier Strike Group 5",
+    groupName: "Theodore Roosevelt CSG",
     carrier: "USS Theodore Roosevelt (CVN-71)",
     navy: "United States Navy",
   },
   {
-    groupId: "csg-cavour",
-    groupName: "Italian Carrier Group",
-    carrier: "ITS Cavour (550)",
-    navy: "Italian Navy",
+    groupId: "csg-cvn72",
+    groupName: "Abraham Lincoln CSG",
+    carrier: "USS Abraham Lincoln (CVN-72)",
+    navy: "United States Navy",
   },
   {
-    groupId: "csg-charles-de-gaulle",
-    groupName: "French Carrier Task Group",
-    carrier: "FS Charles de Gaulle (R91)",
-    navy: "French Navy",
+    groupId: "csg-cvn77",
+    groupName: "George H.W. Bush CSG",
+    carrier: "USS George H.W. Bush (CVN-77)",
+    navy: "United States Navy",
   },
   {
-    groupId: "csg-liaoning",
-    groupName: "PLAN Liaoning Group",
-    carrier: "Liaoning (16)",
-    navy: "PLA Navy",
+    groupId: "csg-cvn70",
+    groupName: "Carl Vinson CSG",
+    carrier: "USS Carl Vinson (CVN-70)",
+    navy: "United States Navy",
+  },
+  {
+    groupId: "csg-cvn68",
+    groupName: "Nimitz CSG",
+    carrier: "USS Nimitz (CVN-68)",
+    navy: "United States Navy",
   },
 ];
 
 const SOURCE_CATALOG = {
-  navy_press: {
-    sourceName: "Official Navy Press",
-    sourceUrl: "https://www.navy.mil/",
-    sourceReliability: 0.95,
-  },
   usni: {
-    sourceName: "USNI News",
-    sourceUrl: "https://news.usni.org/",
-    sourceReliability: 0.86,
-  },
-  janes_osint: {
-    sourceName: "Defense OSINT Synthesis",
-    sourceUrl: "https://www.janes.com/",
-    sourceReliability: 0.78,
-  },
-  nato_exercise: {
-    sourceName: "Exercise/Port Reporting",
-    sourceUrl: "https://www.nato.int/",
-    sourceReliability: 0.74,
-  },
-  regional_media: {
-    sourceName: "Regional Defense Media",
-    sourceUrl: "https://www.navalnews.com/",
-    sourceReliability: 0.66,
+    sourceName: "USNI News Fleet & Marine Tracker",
+    sourceUrl: REPORT_URL,
+    sourceReliability: 0.9,
   },
 } as const;
 
+// One observation per carrier, from the latest weekly USNI tracker. baseUncertaintyKm
+// reflects how vague the reported area is: an open-ocean patrol area is broad, an in-port
+// carrier is tight.
 const OBSERVATIONS: Observation[] = [
   {
-    groupId: "csg-cvn78",
-    lon: -29.1,
-    lat: 49.6,
-    observedAt: "2026-02-28T10:15:00Z",
-    baseUncertaintyKm: 130,
-    sourceId: "navy_press",
-    ...SOURCE_CATALOG.navy_press,
-    note: "Transit and exercise reporting in North Atlantic.",
-  },
-  {
-    groupId: "csg-cvn78",
-    lon: -26.4,
-    lat: 48.8,
-    observedAt: "2026-02-28T07:20:00Z",
-    baseUncertaintyKm: 185,
+    groupId: "csg-cvn73",
+    lon: 132.0,
+    lat: 18.0,
+    observedAt: REPORT_DATE,
+    baseUncertaintyKm: 450,
     sourceId: "usni",
     ...SOURCE_CATALOG.usni,
-    note: "Open-source fleet movement context update.",
-  },
-  {
-    groupId: "csg-cvn78",
-    lon: -30.2,
-    lat: 50.0,
-    observedAt: "2026-02-27T19:40:00Z",
-    baseUncertaintyKm: 220,
-    sourceId: "janes_osint",
-    ...SOURCE_CATALOG.janes_osint,
-    note: "OSINT synthesis estimate.",
-  },
-
-  {
-    groupId: "csg-cvn71",
-    lon: 135.5,
-    lat: 20.0,
-    observedAt: "2026-02-28T03:10:00Z",
-    baseUncertaintyKm: 220,
-    sourceId: "usni",
-    ...SOURCE_CATALOG.usni,
-    note: "Western Pacific operating estimate.",
+    note: "Operating in the Philippine Sea (CVW-5); first patrol of 2026.",
   },
   {
     groupId: "csg-cvn71",
-    lon: 138.9,
-    lat: 22.2,
-    observedAt: "2026-02-27T18:30:00Z",
+    lon: -158.0,
+    lat: 21.3,
+    observedAt: REPORT_DATE,
     baseUncertaintyKm: 260,
-    sourceId: "janes_osint",
-    ...SOURCE_CATALOG.janes_osint,
-    note: "Corroborated movement window.",
+    sourceId: "usni",
+    ...SOURCE_CATALOG.usni,
+    note: "Operating off Pearl Harbor, Hawaii for RIMPAC 2026.",
   },
   {
-    groupId: "csg-cvn71",
-    lon: 132.8,
-    lat: 20.9,
-    observedAt: "2026-02-27T08:45:00Z",
-    baseUncertaintyKm: 300,
-    sourceId: "regional_media",
-    ...SOURCE_CATALOG.regional_media,
-    note: "Regional reporting.",
-  },
-
-  {
-    groupId: "csg-cavour",
-    lon: 13.4,
-    lat: 38.2,
-    observedAt: "2026-02-28T11:25:00Z",
-    baseUncertaintyKm: 95,
-    sourceId: "nato_exercise",
-    ...SOURCE_CATALOG.nato_exercise,
-    note: "Exercise-linked position window.",
+    groupId: "csg-cvn72",
+    lon: -119.0,
+    lat: 32.6,
+    observedAt: REPORT_DATE,
+    baseUncertaintyKm: 350,
+    sourceId: "usni",
+    ...SOURCE_CATALOG.usni,
+    note: "Eastern Pacific; homeported at NAS North Island, Calif.",
   },
   {
-    groupId: "csg-cavour",
-    lon: 14.1,
-    lat: 37.7,
-    observedAt: "2026-02-28T09:55:00Z",
-    baseUncertaintyKm: 110,
-    sourceId: "regional_media",
-    ...SOURCE_CATALOG.regional_media,
-    note: "Mediterranean task group reporting.",
+    groupId: "csg-cvn77",
+    lon: 62.0,
+    lat: 16.0,
+    observedAt: REPORT_DATE,
+    baseUncertaintyKm: 450,
+    sourceId: "usni",
+    ...SOURCE_CATALOG.usni,
+    note: "Operating in the Arabian Sea (CVW-7).",
   },
   {
-    groupId: "csg-cavour",
-    lon: 13.2,
-    lat: 38.4,
-    observedAt: "2026-02-28T05:10:00Z",
-    baseUncertaintyKm: 120,
-    sourceId: "janes_osint",
-    ...SOURCE_CATALOG.janes_osint,
-    note: "OSINT confidence check.",
-  },
-
-  {
-    groupId: "csg-charles-de-gaulle",
-    lon: 30.8,
-    lat: 33.3,
-    observedAt: "2026-02-28T06:30:00Z",
-    baseUncertaintyKm: 140,
-    sourceId: "nato_exercise",
-    ...SOURCE_CATALOG.nato_exercise,
-    note: "Eastern Mediterranean estimated operating area.",
-  },
-  {
-    groupId: "csg-charles-de-gaulle",
-    lon: 31.9,
-    lat: 34.0,
-    observedAt: "2026-02-27T23:15:00Z",
-    baseUncertaintyKm: 170,
-    sourceId: "janes_osint",
-    ...SOURCE_CATALOG.janes_osint,
-    note: "Supporting OSINT track.",
-  },
-
-  {
-    groupId: "csg-liaoning",
-    lon: 153.1,
-    lat: 31.0,
-    observedAt: "2026-02-27T13:25:00Z",
+    groupId: "csg-cvn70",
+    lon: -120.0,
+    lat: 32.2,
+    observedAt: REPORT_DATE,
     baseUncertaintyKm: 320,
-    sourceId: "regional_media",
-    ...SOURCE_CATALOG.regional_media,
-    note: "Sparse regional reporting.",
+    sourceId: "usni",
+    ...SOURCE_CATALOG.usni,
+    note: "Departed San Diego, Calif.; operating in the Eastern Pacific.",
   },
   {
-    groupId: "csg-liaoning",
-    lon: 156.7,
-    lat: 32.9,
-    observedAt: "2026-02-27T01:20:00Z",
-    baseUncertaintyKm: 380,
-    sourceId: "janes_osint",
-    ...SOURCE_CATALOG.janes_osint,
-    note: "Broad open-source estimate.",
+    groupId: "csg-cvn68",
+    lon: -76.33,
+    lat: 36.95,
+    observedAt: REPORT_DATE,
+    baseUncertaintyKm: 60,
+    sourceId: "usni",
+    ...SOURCE_CATALOG.usni,
+    note: "Arrived at new homeport Naval Station Norfolk, Va.",
   },
 ];
 
@@ -308,8 +230,10 @@ function ageHours(iso: string): number {
 }
 
 function ageDecay(hours: number): number {
-  const raw = Math.exp(-hours / 30);
-  return Math.max(0.2, Math.min(1, raw));
+  // USNI publishes weekly, so decay on a multi-week half-life: a report that is a week
+  // or two old should still read as reasonably confident, not collapse to the floor.
+  const raw = Math.exp(-hours / 504);
+  return Math.max(0.35, Math.min(1, raw));
 }
 
 function toConfidence(score: number): CarrierStrikeGroupConfidence {

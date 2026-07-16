@@ -138,6 +138,15 @@ function cacheKeyForBounds(bounds: [number, number, number, number], zoom: numbe
   return `${round(bounds[0])}:${round(bounds[1])}:${round(bounds[2])}:${round(bounds[3])}:z${Math.floor(zoom)}`;
 }
 
+// "Key" installations only: active-component major branches. Excludes National Guard and
+// Reserve components (armyNationalGuard, airNationalGuard, usar, usnr, usmcr, afr) — the
+// numerous small armories that otherwise clutter the map — plus admin/"other" entries.
+const KEY_US_COMPONENTS = new Set(["usa", "usaf", "usmc", "usn"]);
+
+function isKeyUsComponent(component: unknown): boolean {
+  return typeof component === "string" && KEY_US_COMPONENTS.has(component.trim());
+}
+
 function isUsOperationalStatus(status: unknown): boolean {
   if (typeof status !== "string") {
     return true;
@@ -225,6 +234,11 @@ async function fetchUsBases(): Promise<UsCacheRecord> {
         continue;
       }
 
+      // Skip Guard/Reserve/admin sites — keep only key active-component installations.
+      if (!isKeyUsComponent(attrs.siteReportingComponent)) {
+        continue;
+      }
+
       const name =
         getString(attrs, "siteName") ??
         getString(attrs, "featureName") ??
@@ -271,11 +285,13 @@ async function fetchUsBases(): Promise<UsCacheRecord> {
 function buildOverpassQuery(bounds: [number, number, number, number], maxCount: number): string {
   const [west, south, east, north] = bounds;
 
-  const primary = `node["military"~"^(base|barracks|airfield|naval_base|training_area|range|yes)$"](${south},${west},${north},${east});`;
+  // Key installations only: bases, naval bases, and airfields (not barracks/ranges/training areas).
+  const types = "^(base|naval_base|airfield|air_base)$";
+  const primary = `node["military"~"${types}"](${south},${west},${north},${east});`;
 
   const wrapped =
-    `node["military"~"^(base|barracks|airfield|naval_base|training_area|range|yes)$"](${south},${west},${north},180);` +
-    `node["military"~"^(base|barracks|airfield|naval_base|training_area|range|yes)$"](${south},-180,${north},${east});`;
+    `node["military"~"${types}"](${south},${west},${north},180);` +
+    `node["military"~"${types}"](${south},-180,${north},${east});`;
 
   // Overpass expects south,west,north,east and does not support dateline-crossing bboxes in one clause.
   if (west <= east) {
