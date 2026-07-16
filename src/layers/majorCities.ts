@@ -73,7 +73,7 @@ export function ensureMajorCitiesLayer(map: Map): void {
       ],
       layout: {
         "icon-image": ICONS.city,
-        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 0.18, 4, 0.24, 7, 0.3],
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 0.34, 4, 0.42, 7, 0.52],
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
       },

@@ -35,7 +35,7 @@ export function ensureTropicalStormLayer(map: Map): void {
           "#f97316",
           "#facc15",
         ],
-        "circle-radius": ["interpolate", ["linear"], ["zoom"], 1, 3.2, 4, 5.8, 7, 8],
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 1, 4.2, 4, 7.5, 7, 10.5],
         "circle-opacity": 0.82,
         "circle-stroke-color": "#7c2d12",
         "circle-stroke-width": 1,

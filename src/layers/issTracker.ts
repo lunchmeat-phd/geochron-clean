@@ -159,7 +159,7 @@ export function ensureIssTrackerLayer(map: Map): void {
       filter: ["==", ["get", "kind"], "iss"],
       layout: {
         "icon-image": ICONS.iss,
-        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 1.08, 4, 0.86, 7, 0.68],
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 1.4, 4, 1.15, 7, 0.9],
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
       },

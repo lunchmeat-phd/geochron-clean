@@ -113,7 +113,7 @@ export function ensureAirTrafficLayer(map: Map): void {
       filter: ["==", ["get", "squawk"], "7700"],
       layout: {
         "icon-image": ICONS.aircraftEmergency,
-        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 1.9, 4, 1.5, 8, 1.15],
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 2.5, 4, 2.0, 8, 1.5],
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
         "icon-rotate": ["coalesce", ["get", "heading"], 0],
@@ -130,7 +130,7 @@ export function ensureAirTrafficLayer(map: Map): void {
       filter: ["==", ["get", "squawk"], "7600"],
       layout: {
         "icon-image": ICONS.aircraftComms,
-        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 1.75, 4, 1.4, 8, 1.1],
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 2.3, 4, 1.85, 8, 1.4],
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
         "icon-rotate": ["coalesce", ["get", "heading"], 0],

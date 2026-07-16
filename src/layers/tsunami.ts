@@ -58,7 +58,7 @@ export function ensureTsunamiLayer(map: Map): void {
       filter: ["==", ["geometry-type"], "Point"],
       paint: {
         "circle-color": "#8b5cf6",
-        "circle-radius": ["interpolate", ["linear"], ["zoom"], 1, 2.8, 7, 6.4],
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 1, 3.7, 7, 8.3],
         "circle-opacity": 0.8,
         "circle-stroke-color": "#4c1d95",
         "circle-stroke-width": 1.1,

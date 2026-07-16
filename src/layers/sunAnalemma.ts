@@ -127,7 +127,7 @@ export function ensureSunAnalemmaLayer(map: Map): void {
       filter: ["==", ["get", "kind"], "sun"],
       layout: {
         "icon-image": ICONS.sun,
-        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 0.96, 4, 0.78, 7, 0.62],
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 1.4, 4, 1.15, 7, 0.95],
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
       },

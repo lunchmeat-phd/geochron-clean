@@ -29,7 +29,7 @@ export function ensureVolcanoLayer(map: Map): void {
       source: VOLCANO_SOURCE_ID,
       layout: {
         "icon-image": ICONS.volcano,
-        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 0.5, 4, 0.72, 7, 0.95],
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 1, 0.9, 4, 1.2, 7, 1.55],
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
       },
