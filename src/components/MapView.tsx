@@ -162,20 +162,16 @@ const DEFAULT_TOGGLES: LayerToggleState = {
   airTrafficSquawk7600: true,
 };
 
-// Preferred: /api/iss-stream resolves and title-validates the genuine ISS earth-view video, and
-// we embed that exact video (never a documentary). But server-side resolution can fail from a
-// datacenter IP (e.g. on Vercel, where YouTube serves bot-detection HTML). In that case we fall
-// back to embedding the channel's current live stream directly in the browser — which works
-// because the user's browser is a normal client YouTube serves properly. Worst case that shows
-// whatever NASA is live-streaming (occasionally a replay) instead of a broken/blank panel.
-const ISS_FALLBACK_CHANNEL_ID = "UCLA_DiR1FfKNvjuUpBHmylQ"; // NASA official
+// /api/iss-stream resolves and title-validates the ISS earth-view video and always returns a real
+// video ID (falling back to a known-good persistent stream ID when live resolution fails). We embed
+// that exact video — the /embed/VIDEO_ID form is the only one that reliably plays (the old
+// /embed/live_stream?channel= form is dead: YouTube returns an error for it).
+const ISS_KNOWN_GOOD_VIDEO_ID = "awQzjn72bI0";
 const ISS_LIVE_FALLBACK_URL = "https://www.youtube.com/@NASA/live";
 
 function buildIssEmbedUrl(videoId: string | null): string {
-  if (videoId) {
-    return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=1&rel=0&playsinline=1`;
-  }
-  return `https://www.youtube-nocookie.com/embed/live_stream?channel=${ISS_FALLBACK_CHANNEL_ID}&autoplay=1&mute=1&controls=1&rel=0`;
+  const id = videoId ?? ISS_KNOWN_GOOD_VIDEO_ID;
+  return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&controls=1&rel=0&playsinline=1`;
 }
 
 function createBaseStyle(): maplibregl.StyleSpecification {

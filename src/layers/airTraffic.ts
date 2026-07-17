@@ -140,16 +140,6 @@ export function ensureAirTrafficLayer(map: Map): void {
   }
 }
 
-export function setAirTrafficVisibility(map: Map, visible: boolean): void {
-  if (!map || typeof (map as unknown as { getLayer?: unknown }).getLayer !== "function") {
-    return;
-  }
-  setCivilianAirTrafficVisibility(map, visible);
-  setMilitaryAirTrafficVisibility(map, visible);
-  setSquawk7700Visibility(map, visible);
-  setSquawk7600Visibility(map, visible);
-}
-
 export function setCivilianAirTrafficVisibility(map: Map, visible: boolean): void {
   if (!map || typeof (map as unknown as { getLayer?: unknown }).getLayer !== "function") {
     return;

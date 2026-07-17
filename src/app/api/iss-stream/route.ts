@@ -20,7 +20,15 @@ const CANDIDATE_CHANNELS = [
   "UCLA_DiR1FfKNvjuUpBHmylQ", // NASA (official)
 ];
 
+// Persistent video ID of NASA's "Live High-Definition Views from the International Space Station".
+// These streams keep the same ID for months, so this is a safe fallback to embed when server-side
+// resolution fails (notably on Vercel, where YouTube serves datacenter IPs bot-detection HTML).
+// The old /embed/live_stream?channel= fallback is dead (YouTube returns an error for it).
+// Update this if the stream ever restarts under a new ID.
+const KNOWN_GOOD_ISS_VIDEO_ID = "awQzjn72bI0";
+
 const TTL_MS = 10 * 60_000;
+const FALLBACK_TTL_MS = 5 * 60_000;
 const YT_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36";
 
@@ -96,12 +104,8 @@ export async function GET() {
     return NextResponse.json(cache.payload);
   }
 
-  try {
-    const resolved = await resolveIssVideo();
-    if (!resolved) {
-      throw new Error("Live ISS earth-view stream not currently airing");
-    }
-
+  const resolved = await resolveIssVideo();
+  if (resolved) {
     const payload: IssStreamResponse = {
       videoId: resolved.videoId,
       channelId: resolved.channelId,
@@ -111,23 +115,24 @@ export async function GET() {
     };
     cache = { payload, expiresAt: now + TTL_MS };
     return NextResponse.json(payload);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "ISS stream resolve failed";
-    // Serve the last known-good ISS video if we have one; otherwise report none (the client
-    // shows a placeholder rather than risk embedding a documentary).
-    if (cache && cache.payload.videoId) {
-      return NextResponse.json({ ...cache.payload, stale: true, error: message } satisfies IssStreamResponse);
-    }
-    return NextResponse.json(
-      {
-        videoId: null,
-        channelId: null,
-        title: null,
-        fetchedAt: new Date().toISOString(),
-        stale: true,
-        error: message,
-      } satisfies IssStreamResponse,
-      { status: 200 },
-    );
   }
+
+  // Resolution failed (datacenter IP, bot-detection HTML, or nothing valid live). Serve the last
+  // known-good resolved video if we have one, else the persistent known-good ISS stream ID — so
+  // the browser always embeds a real, playable video instead of a broken/blank panel. Cache
+  // briefly so we retry resolution soon.
+  if (cache && cache.payload.videoId) {
+    return NextResponse.json({ ...cache.payload, stale: true } satisfies IssStreamResponse);
+  }
+
+  const fallback: IssStreamResponse = {
+    videoId: KNOWN_GOOD_ISS_VIDEO_ID,
+    channelId: CANDIDATE_CHANNELS[0],
+    title: null,
+    fetchedAt: new Date().toISOString(),
+    stale: true,
+    error: "Live resolution unavailable; using known-good ISS stream",
+  };
+  cache = { payload: fallback, expiresAt: now + FALLBACK_TTL_MS };
+  return NextResponse.json(fallback);
 }
