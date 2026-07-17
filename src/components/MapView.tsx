@@ -162,14 +162,20 @@ const DEFAULT_TOGGLES: LayerToggleState = {
   airTrafficSquawk7600: true,
 };
 
-// The live video ID is resolved (and title-validated as the genuine ISS earth-view stream) by
-// /api/iss-stream. We deliberately do NOT fall back to a raw channel embed when it's null — that
-// slot sometimes airs documentaries/briefings, and showing one of those would be worse than a
-// clean "unavailable" placeholder.
+// Preferred: /api/iss-stream resolves and title-validates the genuine ISS earth-view video, and
+// we embed that exact video (never a documentary). But server-side resolution can fail from a
+// datacenter IP (e.g. on Vercel, where YouTube serves bot-detection HTML). In that case we fall
+// back to embedding the channel's current live stream directly in the browser — which works
+// because the user's browser is a normal client YouTube serves properly. Worst case that shows
+// whatever NASA is live-streaming (occasionally a replay) instead of a broken/blank panel.
+const ISS_FALLBACK_CHANNEL_ID = "UCLA_DiR1FfKNvjuUpBHmylQ"; // NASA official
 const ISS_LIVE_FALLBACK_URL = "https://www.youtube.com/@NASA/live";
 
-function buildIssEmbedUrl(videoId: string): string {
-  return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=1&rel=0&playsinline=1`;
+function buildIssEmbedUrl(videoId: string | null): string {
+  if (videoId) {
+    return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=1&rel=0&playsinline=1`;
+  }
+  return `https://www.youtube-nocookie.com/embed/live_stream?channel=${ISS_FALLBACK_CHANNEL_ID}&autoplay=1&mute=1&controls=1&rel=0`;
 }
 
 function createBaseStyle(): maplibregl.StyleSpecification {
@@ -1599,21 +1605,15 @@ export function MapView() {
               Open in YouTube
             </a>
           </div>
-          {issVideoId ? (
-            <iframe
-              title="ISS live camera"
-              src={buildIssEmbedUrl(issVideoId)}
-              className="iss-feed-frame"
-              loading="lazy"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
-          ) : (
-            <div className="iss-feed-frame iss-feed-unavailable">
-              Live ISS earth view isn&apos;t airing right now. Try &ldquo;Open in YouTube&rdquo; above.
-            </div>
-          )}
+          <iframe
+            title="ISS live camera"
+            src={buildIssEmbedUrl(issVideoId)}
+            className="iss-feed-frame"
+            loading="lazy"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
         </aside>
       ) : null}
       {emergencySquawkAlerts.length > 0 ? (

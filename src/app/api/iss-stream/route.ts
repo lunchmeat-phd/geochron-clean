@@ -63,9 +63,15 @@ function extractLive(html: string): { videoId: string; title: string } | null {
 async function resolveIssVideo(): Promise<{ videoId: string; channelId: string; title: string } | null> {
   for (const channelId of CANDIDATE_CHANNELS) {
     try {
-      const upstream = await fetch(`https://www.youtube.com/channel/${channelId}/live`, {
+      const upstream = await fetch(`https://www.youtube.com/channel/${channelId}/live?hl=en&gl=US`, {
         cache: "no-store",
-        headers: { "User-Agent": YT_UA, "Accept-Language": "en-US,en;q=0.9" },
+        headers: {
+          "User-Agent": YT_UA,
+          "Accept-Language": "en-US,en;q=0.9",
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          // Skip YouTube's cookie-consent interstitial for server-side (datacenter) requests.
+          Cookie: "SOCS=CAI; CONSENT=YES+1",
+        },
         signal: AbortSignal.timeout(12_000),
       });
       if (!upstream.ok) {
